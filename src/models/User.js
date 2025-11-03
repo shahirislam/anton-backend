@@ -71,6 +71,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    total_redeemed: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     profile_image: {
       type: String,
       default: null,

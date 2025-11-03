@@ -1,5 +1,5 @@
 const Category = require('../../models/Category');
-const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 
 const createCategory = async (req, res) => {
   try {
@@ -47,10 +47,15 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-const categoryValidation = [
-  body('name').trim().notEmpty().withMessage('Category name is required'),
-  body('image_url').optional().isURL().withMessage('Image URL must be valid'),
-];
+const categoryValidation = Joi.object({
+  name: Joi.string().trim().required().messages({
+    'string.empty': 'Category name is required',
+    'any.required': 'Category name is required',
+  }),
+  image_url: Joi.string().uri().optional().messages({
+    'string.uri': 'Image URL must be valid',
+  }),
+});
 
 module.exports = {
   createCategory,

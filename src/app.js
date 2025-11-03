@@ -14,10 +14,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(responseTrait);
 
-/**
- * Health check endpoint
- * Available at both /health and /api/health for compatibility
- */
 const healthCheck = async (req, res) => {
   // Mongoose connection states: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
   const dbState = mongoose.connection.readyState;
@@ -41,15 +37,7 @@ const healthCheck = async (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/competitions', require('./routes/competitions'));
-app.use('/api/tickets', require('./routes/tickets'));
-app.use('/api/results', require('./routes/results'));
-app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/points', require('./routes/points'));
-app.use('/api/profile', require('./routes/profile'));
-app.use('/api/categories', require('./routes/categories'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/v1', require('./routes/api/v1'));
 
 app.use((req, res) => {
   res.error('Route not found', 404);

@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['new_competition', 'winner', 'system_update'],
+      enum: ['competition_updates', 'winner_announcements', 'new_competitions', 'live_updates', 'system_update'],
       default: 'system_update',
     },
     is_read: {

@@ -50,7 +50,7 @@ const updateProfile = async (req, res) => {
 
 const getProfilePoints = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('total_points total_earned total_spent');
+    const user = await User.findById(req.user._id).select('total_points total_earned total_spent total_redeemed');
 
     if (!user) {
       return res.error('User not found', 404);
@@ -60,6 +60,7 @@ const getProfilePoints = async (req, res) => {
       total_points: user.total_points,
       total_earned: user.total_earned,
       total_spent: user.total_spent,
+      total_redeemed: user.total_redeemed || 0,
     });
   } catch (error) {
     res.error(error.message || 'Failed to retrieve profile points', 500);

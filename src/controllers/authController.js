@@ -1,4 +1,4 @@
-const { body } = require('express-validator');
+const Joi = require('joi');
 const authService = require('../services/authService');
 
 const register = async (req, res) => {
@@ -91,35 +91,73 @@ const logout = async (req, res) => {
   res.success('Logged out successfully');
 };
 
-// Validation rules
-const registerValidation = [
-  body('name').trim().notEmpty().withMessage('Name is required'),
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-];
+// Validation schemas using Joi
+const registerValidation = Joi.object({
+  name: Joi.string().trim().required().messages({
+    'string.empty': 'Name is required',
+    'any.required': 'Name is required',
+  }),
+  email: Joi.string().email().lowercase().trim().required().messages({
+    'string.email': 'Valid email is required',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().min(6).required().messages({
+    'string.min': 'Password must be at least 6 characters',
+    'any.required': 'Password is required',
+  }),
+});
 
-const loginValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required'),
-];
+const loginValidation = Joi.object({
+  email: Joi.string().email().lowercase().trim().required().messages({
+    'string.email': 'Valid email is required',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+  password: Joi.string().required().messages({
+    'string.empty': 'Password is required',
+    'any.required': 'Password is required',
+  }),
+});
 
-const otpValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-];
+const otpValidation = Joi.object({
+  email: Joi.string().email().lowercase().trim().required().messages({
+    'string.email': 'Valid email is required',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+});
 
-const verifyOtpValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
-];
+const verifyOtpValidation = Joi.object({
+  email: Joi.string().email().lowercase().trim().required().messages({
+    'string.email': 'Valid email is required',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+  otp: Joi.string().length(6).required().messages({
+    'string.length': 'OTP must be 6 digits',
+    'any.required': 'OTP is required',
+  }),
+});
 
-const forgotPasswordValidation = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-];
+const forgotPasswordValidation = Joi.object({
+  email: Joi.string().email().lowercase().trim().required().messages({
+    'string.email': 'Valid email is required',
+    'string.empty': 'Email is required',
+    'any.required': 'Email is required',
+  }),
+});
 
-const resetPasswordValidation = [
-  body('token').notEmpty().withMessage('Token is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-];
+const resetPasswordValidation = Joi.object({
+  token: Joi.string().required().messages({
+    'string.empty': 'Token is required',
+    'any.required': 'Token is required',
+  }),
+  password: Joi.string().min(6).required().messages({
+    'string.min': 'Password must be at least 6 characters',
+    'any.required': 'Password is required',
+  }),
+});
 
 module.exports = {
   register,

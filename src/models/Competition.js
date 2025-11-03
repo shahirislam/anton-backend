@@ -74,6 +74,10 @@ const competitionSchema = new mongoose.Schema(
       enum: ['upcoming', 'active', 'closed', 'completed'],
       default: 'upcoming',
     },
+    live_draw_watching_url: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

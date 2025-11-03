@@ -1,5 +1,5 @@
 const Winner = require('../../models/Winner');
-const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
 
 const createResult = async (req, res) => {
@@ -54,13 +54,27 @@ const getResults = async (req, res) => {
   }
 };
 
-const resultValidation = [
-  body('competition_id').notEmpty().withMessage('Competition ID is required'),
-  body('user_id').notEmpty().withMessage('User ID is required'),
-  body('ticket_number').trim().notEmpty().withMessage('Ticket number is required'),
-  body('prize_value').isFloat({ min: 0 }).withMessage('Valid prize value is required'),
-  body('draw_date').optional().isISO8601().withMessage('Valid draw date is required'),
-];
+const resultValidation = Joi.object({
+  competition_id: Joi.string().required().messages({
+    'string.empty': 'Competition ID is required',
+    'any.required': 'Competition ID is required',
+  }),
+  user_id: Joi.string().required().messages({
+    'string.empty': 'User ID is required',
+    'any.required': 'User ID is required',
+  }),
+  ticket_number: Joi.string().trim().required().messages({
+    'string.empty': 'Ticket number is required',
+    'any.required': 'Ticket number is required',
+  }),
+  prize_value: Joi.number().min(0).required().messages({
+    'number.min': 'Valid prize value is required',
+    'any.required': 'Prize value is required',
+  }),
+  draw_date: Joi.date().iso().optional().messages({
+    'date.base': 'Valid draw date is required',
+  }),
+});
 
 module.exports = {
   createResult,

@@ -14,7 +14,7 @@ const pointsHistorySchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['earned', 'spent'],
+      enum: ['earned', 'spent', 'redeemed'],
       required: [true, 'Type is required'],
     },
     amount: {

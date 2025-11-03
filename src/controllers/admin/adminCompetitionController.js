@@ -1,7 +1,7 @@
 const Competition = require('../../models/Competition');
 const Ticket = require('../../models/Ticket');
 const Winner = require('../../models/Winner');
-const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
 
 const createCompetition = async (req, res) => {
@@ -87,18 +87,55 @@ const getCompetitions = async (req, res) => {
   }
 };
 
-const competitionValidation = [
-  body('title').trim().notEmpty().withMessage('Title is required'),
-  body('short_description').trim().notEmpty().withMessage('Short description is required'),
-  body('long_description').trim().notEmpty().withMessage('Long description is required'),
-  body('category_id').notEmpty().withMessage('Category ID is required'),
-  body('draw_time').isISO8601().withMessage('Valid draw time is required'),
-  body('ticket_price').isFloat({ min: 0.01 }).withMessage('Valid ticket price is required'),
-  body('max_tickets').isInt({ min: 1 }).withMessage('Max tickets must be at least 1'),
-  body('max_per_person').isInt({ min: 1 }).withMessage('Max per person must be at least 1'),
-  body('status').optional().isIn(['upcoming', 'active', 'closed', 'completed']),
-  body('cash_alternative').optional().isFloat({ min: 0 }),
-];
+const competitionValidation = Joi.object({
+  title: Joi.string().trim().required().messages({
+    'string.empty': 'Title is required',
+    'any.required': 'Title is required',
+  }),
+  short_description: Joi.string().trim().required().messages({
+    'string.empty': 'Short description is required',
+    'any.required': 'Short description is required',
+  }),
+  long_description: Joi.string().trim().required().messages({
+    'string.empty': 'Long description is required',
+    'any.required': 'Long description is required',
+  }),
+  category_id: Joi.string().required().messages({
+    'string.empty': 'Category ID is required',
+    'any.required': 'Category ID is required',
+  }),
+  draw_time: Joi.date().iso().required().messages({
+    'date.base': 'Valid draw time is required',
+    'any.required': 'Draw time is required',
+  }),
+  ticket_price: Joi.number().min(0.01).required().messages({
+    'number.min': 'Valid ticket price is required',
+    'any.required': 'Ticket price is required',
+  }),
+  max_tickets: Joi.number().integer().min(1).required().messages({
+    'number.min': 'Max tickets must be at least 1',
+    'any.required': 'Max tickets is required',
+  }),
+  max_per_person: Joi.number().integer().min(1).required().messages({
+    'number.min': 'Max per person must be at least 1',
+    'any.required': 'Max per person is required',
+  }),
+  status: Joi.string().valid('upcoming', 'active', 'closed', 'completed').optional(),
+  cash_alternative: Joi.number().min(0).optional(),
+  live_draw_watching_url: Joi.string().uri().optional().messages({
+    'string.uri': 'Live draw watching URL must be a valid URL',
+  }),
+});
+
+const updateCompetitionPartialValidation = Joi.object({
+  live_draw_watching_url: Joi.string().uri().optional().messages({
+    'string.uri': 'Live draw watching URL must be a valid URL',
+  }),
+  draw_time: Joi.date().iso().optional().messages({
+    'date.base': 'Valid draw time is required',
+  }),
+  status: Joi.string().valid('upcoming', 'active', 'closed', 'completed').optional(),
+});
 
 module.exports = {
   createCompetition,
@@ -106,5 +143,6 @@ module.exports = {
   deleteCompetition,
   getCompetitions,
   competitionValidation,
+  updateCompetitionPartialValidation,
 };
 

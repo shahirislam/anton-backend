@@ -7,6 +7,7 @@ const Ticket = require('../models/Ticket');
 const Winner = require('../models/Winner');
 const Notification = require('../models/Notification');
 const PointsHistory = require('../models/PointsHistory');
+const PointsSettings = require('../models/PointsSettings');
 const bcrypt = require('bcrypt');
 
 const seedAll = async () => {
@@ -25,6 +26,7 @@ const seedAll = async () => {
     await Winner.deleteMany({});
     await Notification.deleteMany({});
     await PointsHistory.deleteMany({});
+    await PointsSettings.deleteMany({});
     console.log('✅ Existing data cleared\n');
 
     // 1. Create Users
@@ -63,6 +65,16 @@ const seedAll = async () => {
     });
     await testAdmin.save();
     console.log('✅ Test admin created\n');
+
+    // 1.5. Create Points Settings
+    console.log('⚙️  Creating points settings...');
+    const pointsSettings = new PointsSettings({
+      points_per_dollar: 10, // 10 points per $1.00 (10% cashback equivalent with $1 = 100 points base)
+      is_active: true,
+      updated_by: testAdmin._id,
+    });
+    await pointsSettings.save();
+    console.log(`✅ Points settings created: ${pointsSettings.points_per_dollar} points per $1.00\n`);
 
     // 2. Create Categories
     console.log('🏷️  Creating categories...');
@@ -273,14 +285,14 @@ const seedAll = async () => {
       {
         title: 'New Competition Available',
         message: 'Check out our new BMW 3 Series competition - only £10 per ticket!',
-        type: 'new_competition',
+        type: 'new_competitions',
         is_read: false,
         user_id: testUser._id,
       },
       {
         title: 'Congratulations! You\'re a Winner!',
         message: 'Amazing news! You have won the Tesla Model 3 Electric competition. Check your results for more details.',
-        type: 'winner',
+        type: 'winner_announcements',
         is_read: true,
         user_id: testUser._id,
       },

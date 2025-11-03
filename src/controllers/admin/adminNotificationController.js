@@ -1,5 +1,5 @@
 const Notification = require('../../models/Notification');
-const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
 
 const createNotification = async (req, res) => {
@@ -34,12 +34,21 @@ const getNotifications = async (req, res) => {
   }
 };
 
-const notificationValidation = [
-  body('title').trim().notEmpty().withMessage('Title is required'),
-  body('message').trim().notEmpty().withMessage('Message is required'),
-  body('type').isIn(['new_competition', 'winner', 'system_update']).withMessage('Invalid notification type'),
-  body('user_id').optional().isString(),
-];
+const notificationValidation = Joi.object({
+  title: Joi.string().trim().required().messages({
+    'string.empty': 'Title is required',
+    'any.required': 'Title is required',
+  }),
+  message: Joi.string().trim().required().messages({
+    'string.empty': 'Message is required',
+    'any.required': 'Message is required',
+  }),
+  type: Joi.string().valid('competition_updates', 'winner_announcements', 'new_competitions', 'live_updates', 'system_update').required().messages({
+    'any.only': 'Invalid notification type',
+    'any.required': 'Type is required',
+  }),
+  user_id: Joi.string().optional(),
+});
 
 module.exports = {
   createNotification,

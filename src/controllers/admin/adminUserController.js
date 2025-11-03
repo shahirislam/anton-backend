@@ -1,6 +1,6 @@
 const User = require('../../models/User');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
-const { body, validationResult } = require('express-validator');
+const Joi = require('joi');
 
 const getUsers = async (req, res) => {
   try {
@@ -87,12 +87,21 @@ const deleteUser = async (req, res) => {
   }
 };
 
-const updateUserValidation = [
-  body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
-  body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('role').optional().isIn(['user', 'admin']).withMessage('Invalid role'),
-  body('verified').optional().isBoolean().withMessage('Verified must be boolean'),
-];
+const updateUserValidation = Joi.object({
+  name: Joi.string().trim().min(1).optional().messages({
+    'string.empty': 'Name cannot be empty',
+    'string.min': 'Name cannot be empty',
+  }),
+  email: Joi.string().email().lowercase().trim().optional().messages({
+    'string.email': 'Valid email is required',
+  }),
+  role: Joi.string().valid('user', 'admin').optional().messages({
+    'any.only': 'Invalid role',
+  }),
+  verified: Joi.boolean().optional().messages({
+    'boolean.base': 'Verified must be boolean',
+  }),
+});
 
 module.exports = {
   getUsers,
