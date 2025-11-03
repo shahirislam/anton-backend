@@ -3,11 +3,22 @@ const Ticket = require('../../models/Ticket');
 const Winner = require('../../models/Winner');
 const Joi = require('joi');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
+const { getFileUrl } = require('../../utils/fileHelper');
 
 const createCompetition = async (req, res) => {
   try {
-    const competition = new Competition(req.body);
+    const competitionData = { ...req.body };
+
+    if (req.file) {
+      competitionData.image_url = `/uploads/competitions/${req.file.filename}`;
+    }
+
+    const competition = new Competition(competitionData);
     await competition.save();
+
+    if (competition.image_url) {
+      competition.image_url = getFileUrl(competition.image_url);
+    }
 
     res.success('Competition created successfully', { competition }, 201);
   } catch (error) {
@@ -19,13 +30,28 @@ const updateCompetition = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const competition = await Competition.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
+    const competition = await Competition.findById(id);
     if (!competition) {
       return res.error('Competition not found', 404);
+    }
+
+    const updateData = { ...req.body };
+
+    if (req.file) {
+      const { deleteFile } = require('../../utils/fileHelper');
+      
+      if (competition.image_url && !competition.image_url.startsWith('http')) {
+        await deleteFile(competition.image_url);
+      }
+
+      updateData.image_url = `/uploads/competitions/${req.file.filename}`;
+    }
+
+    Object.assign(competition, updateData);
+    await competition.save();
+
+    if (competition.image_url) {
+      competition.image_url = getFileUrl(competition.image_url);
     }
 
     res.success('Competition updated successfully', { competition });
@@ -53,6 +79,11 @@ const deleteCompetition = async (req, res) => {
       );
     }
 
+    if (competition.image_url && !competition.image_url.startsWith('http')) {
+      const { deleteFile } = require('../../utils/fileHelper');
+      await deleteFile(competition.image_url);
+    }
+
     await Competition.findByIdAndDelete(id);
 
     res.success('Competition deleted successfully');
@@ -76,10 +107,18 @@ const getCompetitions = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const competitionsWithUrls = competitions.map((competition) => {
+      const comp = competition.toObject();
+      if (comp.image_url && !comp.image_url.startsWith('http')) {
+        comp.image_url = getFileUrl(comp.image_url);
+      }
+      return comp;
+    });
+
     const total = await Competition.countDocuments(query);
 
     res.success('Competitions retrieved successfully', {
-      competitions,
+      competitions: competitionsWithUrls,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {
@@ -122,6 +161,9 @@ const competitionValidation = Joi.object({
   }),
   status: Joi.string().valid('upcoming', 'active', 'closed', 'completed').optional(),
   cash_alternative: Joi.number().min(0).optional(),
+  image_url: Joi.string().uri().optional().messages({
+    'string.uri': 'Image URL must be a valid URL',
+  }),
   live_draw_watching_url: Joi.string().uri().optional().messages({
     'string.uri': 'Live draw watching URL must be a valid URL',
   }),
@@ -135,6 +177,9 @@ const updateCompetitionPartialValidation = Joi.object({
     'date.base': 'Valid draw time is required',
   }),
   status: Joi.string().valid('upcoming', 'active', 'closed', 'completed').optional(),
+  image_url: Joi.string().uri().optional().messages({
+    'string.uri': 'Image URL must be a valid URL',
+  }),
 });
 
 module.exports = {

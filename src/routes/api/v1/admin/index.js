@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../../../middleware/authMiddleware');
-const isAdmin = require('../../../middleware/isAdmin');
+const authMiddleware = require('../../../../middleware/authMiddleware');
+const isAdmin = require('../../../../middleware/isAdmin');
 
-// Apply auth and admin middleware to all admin routes
 router.use(authMiddleware);
 router.use(isAdmin);
 
-// Import and use nested route modules
 router.use('/competitions', require('./competitions'));
 router.use('/tickets', require('./tickets'));
 router.use('/results', require('./results'));

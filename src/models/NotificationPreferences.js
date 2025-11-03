@@ -39,7 +39,7 @@ const notificationPreferencesSchema = new mongoose.Schema(
   }
 );
 
-notificationPreferencesSchema.index({ user_id: 1 }, { unique: true });
+// Index is already created by unique: true in the user_id field definition above
 
 notificationPreferencesSchema.statics.getPreferences = async function (userId) {
   let preferences = await this.findOne({ user_id: userId });

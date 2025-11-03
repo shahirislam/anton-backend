@@ -1,5 +1,6 @@
 const Winner = require('../models/Winner');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
+const { getFileUrl } = require('../utils/fileHelper');
 
 const getResults = async (req, res) => {
   try {
@@ -12,10 +13,18 @@ const getResults = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const resultsWithUrls = results.map((result) => {
+      const resultObj = result.toObject();
+      if (resultObj.competition_id && resultObj.competition_id.image_url && !resultObj.competition_id.image_url.startsWith('http')) {
+        resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url);
+      }
+      return resultObj;
+    });
+
     const total = await Winner.countDocuments();
 
     res.success('Results retrieved successfully', {
-      results,
+      results: resultsWithUrls,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {
@@ -35,7 +44,13 @@ const getResultById = async (req, res) => {
       return res.error('Result not found', 404);
     }
 
-    res.success('Result retrieved successfully', { result });
+    const resultObj = result.toObject();
+    
+    if (resultObj.competition_id && resultObj.competition_id.image_url && !resultObj.competition_id.image_url.startsWith('http')) {
+      resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url);
+    }
+
+    res.success('Result retrieved successfully', { result: resultObj });
   } catch (error) {
     res.error(error.message || 'Failed to retrieve result', 500);
   }

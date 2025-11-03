@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const helpSupportController = require('../../../controllers/helpSupportController');
+const helpSupportController = require('../../../../controllers/helpSupportController');
 
 router.get('/', helpSupportController.getHelpSupport);
 

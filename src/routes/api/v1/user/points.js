@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const pointsController = require('../../../controllers/pointsController');
-const validate = require('../../../middleware/joiValidator');
+const pointsController = require('../../../../controllers/pointsController');
+const validate = require('../../../../middleware/joiValidator');
 const Joi = require('joi');
 
-// All user points routes require authentication (middleware applied in user/index.js)
 router.get('/history', pointsController.getPointsHistory);
 router.get('/summary', pointsController.getPointsSummary);
 

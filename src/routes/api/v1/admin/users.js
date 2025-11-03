@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const adminUserController = require('../../../controllers/admin/adminUserController');
-const validateId = require('../../../middleware/validateId');
-const validate = require('../../../middleware/joiValidator');
+const adminUserController = require('../../../../controllers/admin/adminUserController');
+const validateId = require('../../../../middleware/validateId');
+const validate = require('../../../../middleware/joiValidator');
 
 router.get('/', adminUserController.getUsers);
 router.get('/:id', validateId(), adminUserController.getUserById);

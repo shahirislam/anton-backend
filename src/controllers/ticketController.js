@@ -8,6 +8,7 @@ const PointsSettings = require('../models/PointsSettings');
 const { generateTicketNumber } = require('../utils/ticketNumber');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 const { withTransaction } = require('../utils/transactionHelper');
+const { getFileUrl } = require('../utils/fileHelper');
 
 const purchaseTicket = async (req, res) => {
   try {
@@ -15,7 +16,6 @@ const purchaseTicket = async (req, res) => {
     const userId = req.user._id;
 
     await withTransaction(async (session) => {
-      // Helper to add session if transactions are supported
       const withSession = (query) => session ? query.session(session) : query;
       const createOptions = session ? { session } : {};
 
@@ -98,7 +98,6 @@ const purchaseTicket = async (req, res) => {
       user.total_earned += pointsEarned;
       await (session ? user.save({ session }) : user.save());
 
-      // Create PointsHistory records
       const spentHistory = new PointsHistory({
         user_id: userId,
         type: 'spent',
@@ -139,24 +138,29 @@ const getMyTickets = async (req, res) => {
 
     const total = await Ticket.countDocuments({ user_id: userId });
 
-    // Get distinct competition IDs from user's tickets where competitions are active
     const activeCompetitionIds = await Ticket.distinct('competition_id', {
       user_id: userId,
     });
 
-    // Count active competitions (where status is 'active')
     const activeCompetitions = await Competition.countDocuments({
       _id: { $in: activeCompetitionIds },
       status: 'active',
     });
 
-    // Count total prizes won by user
     const wonPrizes = await Winner.countDocuments({ user_id: userId });
+    
+    const ticketsWithUrls = tickets.map((ticket) => {
+      const ticketObj = ticket.toObject();
+      if (ticketObj.competition_id && ticketObj.competition_id.image_url && !ticketObj.competition_id.image_url.startsWith('http')) {
+        ticketObj.competition_id.image_url = getFileUrl(ticketObj.competition_id.image_url);
+      }
+      return ticketObj;
+    });
 
     res.success('Tickets retrieved successfully', {
       active_entries: activeCompetitions,
       won_prizes: wonPrizes,
-      tickets,
+      tickets: ticketsWithUrls,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {

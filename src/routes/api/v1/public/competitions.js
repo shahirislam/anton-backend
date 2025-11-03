@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const competitionController = require('../../../controllers/competitionController');
-const validateId = require('../../../middleware/validateId');
-const authMiddleware = require('../../../middleware/authMiddleware');
-const optionalAuthMiddleware = require('../../../middleware/optionalAuthMiddleware');
+const competitionController = require('../../../../controllers/competitionController');
+const validateId = require('../../../../middleware/validateId');
+const authMiddleware = require('../../../../middleware/authMiddleware');
+const optionalAuthMiddleware = require('../../../../middleware/optionalAuthMiddleware');
 
 router.get('/', competitionController.getCompetitions);
 router.get('/recent', optionalAuthMiddleware, competitionController.getRecentCompetitions);

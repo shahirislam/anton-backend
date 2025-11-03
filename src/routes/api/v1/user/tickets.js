@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const ticketController = require('../../../controllers/ticketController');
-const authMiddleware = require('../../../middleware/authMiddleware');
-const validateId = require('../../../middleware/validateId');
-const validate = require('../../../middleware/joiValidator');
+const ticketController = require('../../../../controllers/ticketController');
+const authMiddleware = require('../../../../middleware/authMiddleware');
+const validateId = require('../../../../middleware/validateId');
+const validate = require('../../../../middleware/joiValidator');
 const Joi = require('joi');
 
 const purchaseValidation = Joi.object({

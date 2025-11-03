@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const profileController = require('../../../controllers/profileController');
-const authMiddleware = require('../../../middleware/authMiddleware');
-const validate = require('../../../middleware/joiValidator');
+const profileController = require('../../../../controllers/profileController');
+const authMiddleware = require('../../../../middleware/authMiddleware');
+const validate = require('../../../../middleware/joiValidator');
 const Joi = require('joi');
 
 const updateProfileValidation = Joi.object({

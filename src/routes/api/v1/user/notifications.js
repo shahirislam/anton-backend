@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const notificationController = require('../../../controllers/notificationController');
-const authMiddleware = require('../../../middleware/authMiddleware');
-const validateId = require('../../../middleware/validateId');
-const validate = require('../../../middleware/joiValidator');
+const notificationController = require('../../../../controllers/notificationController');
+const authMiddleware = require('../../../../middleware/authMiddleware');
+const validateId = require('../../../../middleware/validateId');
+const validate = require('../../../../middleware/joiValidator');
 const Joi = require('joi');
 
 router.get('/', authMiddleware, notificationController.getNotifications);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const adminTicketController = require('../../../controllers/admin/adminTicketController');
-const validateId = require('../../../middleware/validateId');
+const adminTicketController = require('../../../../controllers/admin/adminTicketController');
+const validateId = require('../../../../middleware/validateId');
 
 router.get('/', adminTicketController.getTickets);
 router.get('/:competition_id', validateId('competition_id'), adminTicketController.getTicketsByCompetition);

@@ -2,6 +2,7 @@ const Competition = require('../models/Competition');
 const Favorite = require('../models/Favorite');
 const Ticket = require('../models/Ticket');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
+const { getFileUrl } = require('../utils/fileHelper');
 
 // Helper function to format live draw value
 const formatLiveDrawValue = (drawTime) => {
@@ -51,10 +52,19 @@ const getCompetitions = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    // Convert image_url to full URL for each competition
+    const competitionsWithUrls = competitions.map((competition) => {
+      const comp = competition.toObject();
+      if (comp.image_url && !comp.image_url.startsWith('http')) {
+        comp.image_url = getFileUrl(comp.image_url);
+      }
+      return comp;
+    });
+
     const total = await Competition.countDocuments(query);
 
     res.success('Competitions retrieved successfully', {
-      competitions,
+      competitions: competitionsWithUrls,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {
@@ -108,7 +118,15 @@ const getRecentCompetitions = async (req, res) => {
         .lean();
     }
 
-    res.success('Recent competitions retrieved successfully', { competitions });
+    // Convert image_url to full URL for each competition
+    const competitionsWithUrls = competitions.map((competition) => {
+      if (competition.image_url && !competition.image_url.startsWith('http')) {
+        competition.image_url = getFileUrl(competition.image_url);
+      }
+      return competition;
+    });
+
+    res.success('Recent competitions retrieved successfully', { competitions: competitionsWithUrls });
   } catch (error) {
     res.error(error.message || 'Failed to retrieve recent competitions', 500);
   }
@@ -131,7 +149,16 @@ const searchCompetitions = async (req, res) => {
       .populate('category_id', 'name slug')
       .limit(20);
 
-    res.success('Search results retrieved successfully', { competitions });
+    // Convert image_url to full URL for each competition
+    const competitionsWithUrls = competitions.map((competition) => {
+      const comp = competition.toObject();
+      if (comp.image_url && !comp.image_url.startsWith('http')) {
+        comp.image_url = getFileUrl(comp.image_url);
+      }
+      return comp;
+    });
+
+    res.success('Search results retrieved successfully', { competitions: competitionsWithUrls });
   } catch (error) {
     res.error(error.message || 'Search failed', 500);
   }
@@ -186,6 +213,16 @@ const getCompetitionById = async (req, res) => {
     competitionData.progress_percentage = progress_percentage;
     competitionData.live_draw_value = formatLiveDrawValue(competition.draw_time);
     competitionData.live_draw_watching_url = competition.live_draw_watching_url || null;
+
+    // Convert image_url to full URL if it's a local file
+    if (competitionData.image_url && !competitionData.image_url.startsWith('http')) {
+      competitionData.image_url = getFileUrl(competitionData.image_url);
+    }
+
+    // Also convert category image_url if it exists
+    if (competitionData.category_id && competitionData.category_id.image_url && !competitionData.category_id.image_url.startsWith('http')) {
+      competitionData.category_id.image_url = getFileUrl(competitionData.category_id.image_url);
+    }
 
     // Add user-specific fields if authenticated
     if (userId) {
@@ -301,10 +338,19 @@ const getMyFavorites = async (req, res) => {
       .map(id => competitionMap.get(id))
       .filter(Boolean);
 
+    // Convert image_url to full URL for each competition
+    const competitionsWithUrls = orderedCompetitions.map((competition) => {
+      const comp = competition.toObject ? competition.toObject() : competition;
+      if (comp.image_url && !comp.image_url.startsWith('http')) {
+        comp.image_url = getFileUrl(comp.image_url);
+      }
+      return comp;
+    });
+
     const total = await Favorite.countDocuments({ user_id: userId });
 
     res.success('Favorites retrieved successfully', {
-      competitions: orderedCompetitions,
+      competitions: competitionsWithUrls,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {
@@ -352,6 +398,12 @@ const getMyCompetitions = async (req, res) => {
         const competition = competitions.find(c => c._id.toString() === id.toString());
         if (competition) {
           competition.ticket_count = ticketCountMap.get(id.toString()) || 0;
+          
+          // Convert image_url to full URL
+          if (competition.image_url && !competition.image_url.startsWith('http')) {
+            competition.image_url = getFileUrl(competition.image_url);
+          }
+          
           return competition;
         }
         return null;

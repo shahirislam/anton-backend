@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-// Import and use nested route modules
 router.use('/competitions', require('./competitions'));
 router.use('/categories', require('./categories'));
 router.use('/results', require('./results'));
