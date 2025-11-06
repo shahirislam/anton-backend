@@ -29,15 +29,24 @@ const getTicketsByCompetition = async (req, res) => {
     const { page, limit, skip } = getPaginationParams(req);
 
     const tickets = await Ticket.find({ competition_id })
-      .populate('user_id', 'name email')
+      .populate('user_id', 'name')
+      .select('ticket_number user_id purchase_date')
       .sort({ purchase_date: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await Ticket.countDocuments({ competition_id });
 
+    // Format response with only required fields
+    const formattedTickets = tickets.map(ticket => ({
+      ticket_number: ticket.ticket_number,
+      username: ticket.user_id?.name || 'N/A',
+      date_time: ticket.purchase_date,
+    }));
+
     res.success('Tickets retrieved successfully', {
-      tickets,
+      tickets: formattedTickets,
       pagination: getPaginationMeta(page, limit, total),
     });
   } catch (error) {

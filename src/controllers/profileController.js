@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Ticket = require('../models/Ticket');
 const PointsHistory = require('../models/PointsHistory');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
+const { getFileUrl, deleteFile } = require('../utils/fileHelper');
 
 const getProfile = async (req, res) => {
   try {
@@ -11,7 +12,13 @@ const getProfile = async (req, res) => {
       return res.error('User not found', 404);
     }
 
-    res.success('Profile retrieved successfully', { user });
+    // Convert profile_image to full URL if it's a local file
+    const userData = user.toObject();
+    if (userData.profile_image && !userData.profile_image.startsWith('http')) {
+      userData.profile_image = getFileUrl(userData.profile_image);
+    }
+
+    res.success('Profile retrieved successfully', { user: userData });
   } catch (error) {
     res.error(error.message || 'Failed to retrieve profile', 500);
   }
@@ -19,7 +26,7 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, email, profile_image } = req.body;
+    const { name, email, phone_number, location } = req.body;
     const userId = req.user._id;
 
     const user = await User.findById(userId);
@@ -37,12 +44,28 @@ const updateProfile = async (req, res) => {
       user.verified = false; // Require re-verification if email changed
     }
 
+    // Handle profile image upload
+    if (req.file) {
+      // Delete old profile image if it exists and is a local file
+      if (user.profile_image && !user.profile_image.startsWith('http')) {
+        await deleteFile(user.profile_image);
+      }
+      user.profile_image = `/uploads/profiles/${req.file.filename}`;
+    }
+
     if (name) user.name = name;
-    if (profile_image !== undefined) user.profile_image = profile_image;
+    if (phone_number !== undefined) user.phone_number = phone_number;
+    if (location !== undefined) user.location = location;
 
     await user.save();
 
-    res.success('Profile updated successfully', { user });
+    // Convert profile_image to full URL if it's a local file
+    const userData = user.toObject();
+    if (userData.profile_image && !userData.profile_image.startsWith('http')) {
+      userData.profile_image = getFileUrl(userData.profile_image);
+    }
+
+    res.success('Profile updated successfully', { user: userData });
   } catch (error) {
     res.error(error.message || 'Failed to update profile', 500);
   }

@@ -1,5 +1,8 @@
 const rateLimit = require('express-rate-limit');
 
+// Skip rate limiting in development mode
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const rateLimitHandler = (req, res, next, options) => {
   res.status(429).json({
     success: false,
@@ -14,7 +17,8 @@ const authLimiter = rateLimit({
   handler: rateLimitHandler,
   standardHeaders: true, 
   legacyHeaders: false,
-  skipSuccessfulRequests: false, 
+  skipSuccessfulRequests: false,
+  skip: () => isDevelopment, // Skip rate limiting in development
 });
 
 const sensitiveActionLimiter = rateLimit({
@@ -25,6 +29,7 @@ const sensitiveActionLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
+  skip: () => isDevelopment, // Skip rate limiting in development
 });
 
 const generalLimiter = rateLimit({
@@ -35,6 +40,7 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  skip: () => isDevelopment, // Skip rate limiting in development
 });
 
 module.exports = {

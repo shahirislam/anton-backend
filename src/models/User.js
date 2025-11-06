@@ -80,6 +80,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    phone_number: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    location: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     timestamps: true,

@@ -77,6 +77,7 @@ const getRecentCompetitions = async (req, res) => {
     const userId = req.user?._id;
     
     let competitions;
+    let favoriteIds = [];
     
     if (userId) {
       // Get user's favorite competitions first
@@ -84,7 +85,7 @@ const getRecentCompetitions = async (req, res) => {
         .select('competition_id')
         .lean();
       
-      const favoriteIds = favoriteCompetitions.map(fav => fav.competition_id);
+      favoriteIds = favoriteCompetitions.map(fav => fav.competition_id.toString());
       
       // Get favorite competitions
       const favorites = favoriteIds.length > 0
@@ -118,12 +119,15 @@ const getRecentCompetitions = async (req, res) => {
         .lean();
     }
 
-    // Convert image_url to full URL for each competition
+    // Convert image_url to full URL and add is_favorite field for each competition
     const competitionsWithUrls = competitions.map((competition) => {
-      if (competition.image_url && !competition.image_url.startsWith('http')) {
-        competition.image_url = getFileUrl(competition.image_url);
+      const comp = { ...competition };
+      if (comp.image_url && !comp.image_url.startsWith('http')) {
+        comp.image_url = getFileUrl(comp.image_url);
       }
-      return competition;
+      // Add is_favorite field (true if competition ID is in favoriteIds array)
+      comp.is_favorite = userId ? favoriteIds.includes(comp._id.toString()) : false;
+      return comp;
     });
 
     res.success('Recent competitions retrieved successfully', { competitions: competitionsWithUrls });
@@ -167,7 +171,8 @@ const searchCompetitions = async (req, res) => {
 const getCompetitionById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?._id; // Optional auth user
+    // Get userId from authenticated user (optional auth middleware)
+    const userId = req.user && req.user._id ? req.user._id.toString() : null;
 
     const competition = await Competition.findById(id).populate('category_id', 'name slug image_url');
 
@@ -363,8 +368,15 @@ const getMyCompetitions = async (req, res) => {
     const userId = req.user._id;
     const { page, limit, skip } = getPaginationParams(req);
 
-    // Get distinct competition IDs from user's tickets
-    const ticketCompetitions = await Ticket.aggregate([
+    // Get user's favorite competition IDs
+    const favoriteCompetitions = await Favorite.find({ user_id: userId })
+      .select('competition_id')
+      .lean();
+    
+    const favoriteIds = favoriteCompetitions.map(fav => fav.competition_id.toString());
+
+    // Get all distinct competition IDs from user's tickets with ticket counts and purchase dates
+    const allTicketCompetitions = await Ticket.aggregate([
       { $match: { user_id: userId } },
       {
         $group: {
@@ -373,12 +385,26 @@ const getMyCompetitions = async (req, res) => {
           latest_purchase: { $max: '$purchase_date' },
         },
       },
-      { $sort: { latest_purchase: -1 } },
-      { $skip: skip },
-      { $limit: limit },
     ]);
 
-    const competitionIds = ticketCompetitions.map(tc => tc._id);
+    // Separate favorites and non-favorites
+    const favoriteTicketCompetitions = allTicketCompetitions.filter(tc => 
+      favoriteIds.includes(tc._id.toString())
+    );
+    const nonFavoriteTicketCompetitions = allTicketCompetitions.filter(tc => 
+      !favoriteIds.includes(tc._id.toString())
+    );
+
+    // Sort favorites by latest purchase, then non-favorites by latest purchase
+    favoriteTicketCompetitions.sort((a, b) => new Date(b.latest_purchase) - new Date(a.latest_purchase));
+    nonFavoriteTicketCompetitions.sort((a, b) => new Date(b.latest_purchase) - new Date(a.latest_purchase));
+
+    // Combine: favorites first, then non-favorites
+    const sortedTicketCompetitions = [...favoriteTicketCompetitions, ...nonFavoriteTicketCompetitions];
+
+    // Apply pagination
+    const paginatedTicketCompetitions = sortedTicketCompetitions.slice(skip, skip + limit);
+    const competitionIds = paginatedTicketCompetitions.map(tc => tc._id);
 
     // Get competitions
     const competitions = competitionIds.length > 0
@@ -389,15 +415,16 @@ const getMyCompetitions = async (req, res) => {
 
     // Create a map for ticket counts
     const ticketCountMap = new Map(
-      ticketCompetitions.map(tc => [tc._id.toString(), tc.ticket_count])
+      allTicketCompetitions.map(tc => [tc._id.toString(), tc.ticket_count])
     );
 
-    // Add ticket_count to each competition and maintain order
+    // Add ticket_count and is_favorite to each competition, maintaining order
     const competitionsWithTicketCount = competitionIds
       .map(id => {
         const competition = competitions.find(c => c._id.toString() === id.toString());
         if (competition) {
           competition.ticket_count = ticketCountMap.get(id.toString()) || 0;
+          competition.is_favorite = favoriteIds.includes(id.toString());
           
           // Convert image_url to full URL
           if (competition.image_url && !competition.image_url.startsWith('http')) {

@@ -12,6 +12,7 @@ router.use('/faq', require('./public/faq'));
 router.use('/terms', require('./public/terms'));
 router.use('/help-support', require('./public/helpSupport'));
 router.use('/points', require('./public/points'));
+router.use('/tickets', require('./public/tickets'));
 
 module.exports = router;
 

@@ -48,19 +48,12 @@ const purchaseTicket = async (req, res) => {
       const user = await withSession(User.findById(userId));
       
       const dollarsSpent = competition.ticket_price * quantity;
-      const pointsToSpend = Math.floor(dollarsSpent * 100);
 
-      if (user.total_points < pointsToSpend) {
-        return res.error('Insufficient points', 400);
-      }
-
+      // Calculate points earned (not spent) based on purchase
       const pointsSettings = await PointsSettings.getSettings();
-      
-      if (!pointsSettings.is_active) {
-        return res.error('Points earning is currently disabled', 400);
-      }
-
-      const pointsEarned = Math.floor(dollarsSpent * pointsSettings.points_per_dollar);
+      const pointsEarned = pointsSettings.is_active 
+        ? Math.floor(dollarsSpent * pointsSettings.points_per_dollar)
+        : 0;
 
       const tickets = [];
       const MAX_RETRY_ATTEMPTS = 50; 
@@ -92,27 +85,24 @@ const purchaseTicket = async (req, res) => {
       competition.tickets_sold += quantity;
       await (session ? competition.save({ session }) : competition.save());
 
-      user.total_points -= pointsToSpend;
-      user.total_spent += pointsToSpend;
-      user.total_points += pointsEarned;
-      user.total_earned += pointsEarned;
+      // Update user: track spending and add earned points
+      user.total_spent += dollarsSpent;
+      if (pointsEarned > 0) {
+        user.total_points += pointsEarned;
+        user.total_earned += pointsEarned;
+      }
       await (session ? user.save({ session }) : user.save());
 
-      const spentHistory = new PointsHistory({
-        user_id: userId,
-        type: 'spent',
-        amount: pointsToSpend,
-        description: `Purchased ${quantity} ticket(s) for ${competition.title}`,
-      });
-      await (session ? spentHistory.save({ session }) : spentHistory.save());
-
-      const earnedHistory = new PointsHistory({
-        user_id: userId,
-        type: 'earned',
-        amount: pointsEarned,
-        description: `Earned ${pointsEarned} points for purchasing ${quantity} ticket(s) (${dollarsSpent.toFixed(2)} spent)`,
-      });
-      await (session ? earnedHistory.save({ session }) : earnedHistory.save());
+      // Only create points history if points were earned
+      if (pointsEarned > 0) {
+        const earnedHistory = new PointsHistory({
+          user_id: userId,
+          type: 'earned',
+          amount: pointsEarned,
+          description: `Earned ${pointsEarned} points for purchasing ${quantity} ticket(s) ($${dollarsSpent.toFixed(2)} spent)`,
+        });
+        await (session ? earnedHistory.save({ session }) : earnedHistory.save());
+      }
 
       res.success('Tickets purchased successfully', {
         tickets,
@@ -212,10 +202,48 @@ const searchTicket = async (req, res) => {
   }
 };
 
+const getCompetitionTicketsList = async (req, res) => {
+  try {
+    const { competition_id } = req.params;
+    const { page, limit, skip } = getPaginationParams(req);
+
+    // Verify competition exists
+    const competition = await Competition.findById(competition_id);
+    if (!competition) {
+      return res.error('Competition not found', 404);
+    }
+
+    const tickets = await Ticket.find({ competition_id })
+      .populate('user_id', 'name')
+      .select('ticket_number user_id purchase_date')
+      .sort({ purchase_date: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Ticket.countDocuments({ competition_id });
+
+    // Format response with only required fields
+    const formattedTickets = tickets.map(ticket => ({
+      ticket_number: ticket.ticket_number,
+      username: ticket.user_id?.name || 'N/A',
+      date_time: ticket.purchase_date,
+    }));
+
+    res.success('Tickets retrieved successfully', {
+      tickets: formattedTickets,
+      pagination: getPaginationMeta(page, limit, total),
+    });
+  } catch (error) {
+    res.error(error.message || 'Failed to retrieve tickets', 500);
+  }
+};
+
 module.exports = {
   purchaseTicket,
   getMyTickets,
   getCompetitionTickets,
   searchTicket,
+  getCompetitionTicketsList,
 };
 

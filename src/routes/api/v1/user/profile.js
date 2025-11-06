@@ -3,7 +3,10 @@ const router = express.Router();
 const profileController = require('../../../../controllers/profileController');
 const authMiddleware = require('../../../../middleware/authMiddleware');
 const validate = require('../../../../middleware/joiValidator');
+const { createUploadMiddleware } = require('../../../../middleware/uploadMiddleware');
 const Joi = require('joi');
+
+const uploadProfileImage = createUploadMiddleware('profiles', 'profile_image');
 
 const updateProfileValidation = Joi.object({
   name: Joi.string().trim().min(1).optional().messages({
@@ -13,13 +16,16 @@ const updateProfileValidation = Joi.object({
   email: Joi.string().email().lowercase().trim().optional().messages({
     'string.email': 'Valid email is required',
   }),
-  profile_image: Joi.string().uri().optional().messages({
-    'string.uri': 'Profile image must be a valid URL',
+  phone_number: Joi.string().trim().optional().allow('', null).messages({
+    'string.base': 'Phone number must be a string',
+  }),
+  location: Joi.string().trim().optional().allow('', null).messages({
+    'string.base': 'Location must be a string',
   }),
 });
 
 router.get('/', authMiddleware, profileController.getProfile);
-router.put('/', authMiddleware, validate(updateProfileValidation), profileController.updateProfile);
+router.put('/', authMiddleware, uploadProfileImage, validate(updateProfileValidation), profileController.updateProfile);
 router.get('/points', authMiddleware, profileController.getProfilePoints);
 router.get('/transactions', authMiddleware, profileController.getProfileTransactions);
 

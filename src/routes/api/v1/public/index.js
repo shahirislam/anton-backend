@@ -8,6 +8,7 @@ router.use('/faq', require('./faq'));
 router.use('/terms', require('./terms'));
 router.use('/help-support', require('./helpSupport'));
 router.use('/points', require('./points'));
+router.use('/tickets', require('./tickets'));
 
 module.exports = router;
 
