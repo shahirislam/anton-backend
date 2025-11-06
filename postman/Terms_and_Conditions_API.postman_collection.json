@@ -1,0 +1,496 @@
+{
+	"info": {
+		"_postman_id": "terms-conditions-api-collection",
+		"name": "Terms & Conditions API",
+		"description": "API collection for Terms & Conditions management with sections support",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Public Endpoints",
+			"item": [
+				{
+					"name": "Get Sections List (Lightweight)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/terms/sections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"terms",
+								"sections"
+							]
+						},
+						"description": "Get list of all sections with titles and order (no content). Use this for initial load to show navigation."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Section by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/terms/sections/:section_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"terms",
+								"sections",
+								":section_id"
+							],
+							"variable": [
+								{
+									"key": "section_id",
+									"value": "section-uuid-here",
+									"description": "Section ID from sections list"
+								}
+							]
+						},
+						"description": "Get full content of a specific section by ID. Use this for lazy loading."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Paginated Sections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/terms/sections/paginated?page=1&limit=2",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"terms",
+								"sections",
+								"paginated"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "2",
+									"description": "Items per page (default: 10)"
+								}
+							]
+						},
+						"description": "Get sections with pagination. Use this for progressive loading."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Sections (Legacy)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/terms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"terms"
+							]
+						},
+						"description": "Get all sections at once (legacy endpoint for backward compatibility)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin Endpoints",
+			"item": [
+				{
+					"name": "Create Section",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"section_title\": \"About Us\",\n  \"section_content\": \"This is the About Us section content. You can add detailed information about your company here.\",\n  \"order\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/terms/sections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"terms",
+								"sections"
+							]
+						},
+						"description": "Create a new terms section. Order determines display sequence."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Section",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"section_title\": \"About Us - Updated\",\n  \"section_content\": \"Updated content here...\",\n  \"order\": 1,\n  \"is_active\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/terms/sections/:section_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"terms",
+								"sections",
+								":section_id"
+							],
+							"variable": [
+								{
+									"key": "section_id",
+									"value": "section-uuid-here",
+									"description": "Section ID to update"
+								}
+							]
+						},
+						"description": "Update an existing section. All fields are required."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Section",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/terms/sections/:section_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"terms",
+								"sections",
+								":section_id"
+							],
+							"variable": [
+								{
+									"key": "section_id",
+									"value": "section-uuid-here",
+									"description": "Section ID to delete"
+								}
+							]
+						},
+						"description": "Delete a terms section permanently."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Sections (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/terms/sections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"terms",
+								"sections"
+							]
+						},
+						"description": "Get all sections (including inactive) for admin management."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Example Workflows",
+			"item": [
+				{
+					"name": "1. Create Multiple Sections",
+					"item": [
+						{
+							"name": "Create - About Us (Order 1)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"section_title\": \"About Us\",\n  \"section_content\": \"Welcome to our platform. We are committed to providing fair and transparent competitions.\",\n  \"order\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/terms/sections",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"terms",
+										"sections"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create - Eligibility (Order 2)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"section_title\": \"Eligibility\",\n  \"section_content\": \"To enter our competitions, you must be 18 years or older and reside in an eligible jurisdiction.\",\n  \"order\": 2\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/terms/sections",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"terms",
+										"sections"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create - Entering Competition (Order 3)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{admin_token}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"section_title\": \"Entering a Competition\",\n  \"section_content\": \"To enter a competition, simply select your desired tickets and complete the purchase. Each ticket gives you one entry into the draw.\",\n  \"order\": 3\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/admin/terms/sections",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"admin",
+										"terms",
+										"sections"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "2. Frontend Flow - Progressive Loading",
+					"item": [
+						{
+							"name": "Step 1: Get Sections List",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/terms/sections",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"terms",
+										"sections"
+									]
+								},
+								"description": "First, get the list of sections to build navigation menu"
+							},
+							"response": []
+						},
+						{
+							"name": "Step 2: Load First Section",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/terms/sections/:section_id",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"terms",
+										"sections",
+										":section_id"
+									],
+									"variable": [
+										{
+											"key": "section_id",
+											"value": "{{first_section_id}}",
+											"description": "Use ID from Step 1 response"
+										}
+									]
+								},
+								"description": "Load content of first section (order: 1)"
+							},
+							"response": []
+						},
+						{
+							"name": "Step 3: Load Next Section (Lazy)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/terms/sections/:section_id",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"terms",
+										"sections",
+										":section_id"
+									],
+									"variable": [
+										{
+											"key": "section_id",
+											"value": "{{next_section_id}}",
+											"description": "Load when user scrolls or clicks next"
+										}
+									]
+								},
+								"description": "Load next section content on demand"
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "YOUR_ADMIN_JWT_TOKEN_HERE",
+			"type": "string"
+		}
+	]
+}
+

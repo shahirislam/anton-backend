@@ -27,8 +27,17 @@ const updateCartItemValidation = Joi.object({
   }),
 });
 
+const checkoutValidation = Joi.object({
+  points_to_redeem: Joi.number().integer().min(0).optional().default(0).messages({
+    'number.min': 'Points to redeem must be 0 or greater',
+    'number.base': 'Points to redeem must be a number',
+    'number.integer': 'Points to redeem must be an integer',
+  }),
+});
+
 router.post('/', authMiddleware, validate(addToCartValidation), cartController.addToCart);
 router.get('/', authMiddleware, cartController.getCart);
+router.post('/checkout', authMiddleware, validate(checkoutValidation), cartController.checkout);
 router.delete('/clear', authMiddleware, cartController.clearCart);
 router.put('/:id', authMiddleware, validateId(), validate(updateCartItemValidation), cartController.updateCartItem);
 router.delete('/:id', authMiddleware, validateId(), cartController.removeFromCart);
