@@ -42,7 +42,8 @@ Create a `.env` file in the project root with the following variables:
 ```env
 # Server Configuration
 PORT=5000
-APP_URL=http://localhost:5000
+APP_URL=http://localhost:5000  # Backend URL (used for file URLs, OAuth callbacks)
+BASE_URL=http://localhost:5000  # Alternative to APP_URL (used for file URLs - set to your production URL)
 GRACEFUL_SHUTDOWN_TIMEOUT=10000  # Timeout in milliseconds for graceful shutdown (default: 10000)
 
 # Database Configuration
@@ -104,13 +105,19 @@ npm run dev
 http://localhost:5000/api
 ```
 
-### Postman Collection
+### Postman Collections
 
-Import the `tmg_competitions_api.json` file into Postman for complete API testing. The collection includes:
+Import the Postman collection files into Postman for complete API testing:
 
+- **Social Authentication API** (`postman/Social_Authentication_API.postman_collection.json`) - Social auth endpoints
+- **Terms and Conditions API** (`postman/Terms_and_Conditions_API.postman_collection.json`) - Terms endpoints
+- **Stripe Payment API** (`postman/Stripe_Payment_API.postman_collection.json`) - Payment integration endpoints ⭐ **NEW**
+
+The collections include:
 - All endpoints organized by folders
 - Example request bodies
 - Environment variables for base URL and access token
+- Automatic variable extraction from responses
 
 ### Authentication
 

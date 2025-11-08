@@ -41,7 +41,7 @@ const deleteFile = async (filePath) => {
  * @param {string} baseUrl - Base URL of the application (from environment or default)
  * @returns {string} - Full URL
  */
-const getFileUrl = (filePath, baseUrl = process.env.BASE_URL || 'http://localhost:5000') => {
+const getFileUrl = (filePath, baseUrl = null) => {
   if (!filePath) return null;
   
   // If it's already a full URL, return as is
@@ -49,9 +49,12 @@ const getFileUrl = (filePath, baseUrl = process.env.BASE_URL || 'http://localhos
     return filePath;
   }
 
+  // Determine base URL: use provided, then BASE_URL, then APP_URL, then default
+  const appBaseUrl = baseUrl || process.env.BASE_URL || process.env.APP_URL || 'http://localhost:5000';
+
   // Ensure path starts with /
   const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-  return `${baseUrl}${normalizedPath}`;
+  return `${appBaseUrl}${normalizedPath}`;
 };
 
 module.exports = {

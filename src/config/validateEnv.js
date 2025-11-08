@@ -118,6 +118,15 @@ const validateOAuthEnv = () => {
     warnings.push('FRONTEND_URL is not set (using default: http://localhost:3000)');
   }
 
+  // Backend URL (required for production - used for file URLs)
+  if (!process.env.BASE_URL && !process.env.APP_URL) {
+    if (process.env.NODE_ENV === 'production') {
+      warnings.push('BASE_URL or APP_URL is not set (file URLs will use localhost - this will break in production!)');
+    } else {
+      warnings.push('BASE_URL or APP_URL is not set (using default: http://localhost:5000)');
+    }
+  }
+
   // Stripe webhook secret (optional for development, required for production)
   if (!process.env.STRIPE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
     warnings.push('STRIPE_WEBHOOK_SECRET is not set (webhooks will not work in production)');

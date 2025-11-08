@@ -1,0 +1,259 @@
+{
+	"info": {
+		"_postman_id": "stripe-payment-api-collection",
+		"name": "Stripe Payment API",
+		"description": "API collection for Stripe payment integration - Payment intents, status checks, and webhook testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Payment Intents",
+			"item": [
+				{
+					"name": "1. Create Payment Intent - Single Purchase",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.success) {",
+									"        pm.environment.set(\"payment_intent_id\", response.data.payment_intent_id);",
+									"        pm.environment.set(\"client_secret\", response.data.client_secret);",
+									"        pm.collectionVariables.set(\"payment_intent_id\", response.data.payment_intent_id);",
+									"        pm.collectionVariables.set(\"client_secret\", response.data.client_secret);",
+									"        console.log(\"Payment Intent ID:\", response.data.payment_intent_id);",
+									"        console.log(\"Client Secret:\", response.data.client_secret);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"competition_id\": \"57adb417-ea60-4a0a-9747-775b2215a1d7\",\n    \"quantity\": 3\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/create-intent/single",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"create-intent",
+								"single"
+							]
+						},
+						"description": "Create a payment intent for purchasing tickets for a single competition.\n\n**Request Body:**\n- `competition_id` (required): UUID of the competition\n- `quantity` (optional): Number of tickets to purchase (default: 1)\n\n**Response:**\n- `payment_intent_id`: Stripe payment intent ID\n- `client_secret`: Client secret for confirming payment in mobile app\n- `amount`: Total amount in dollars\n- `currency`: Currency code (usd)"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Create Payment Intent - Cart Checkout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.success) {",
+									"        pm.environment.set(\"payment_intent_id\", response.data.payment_intent_id);",
+									"        pm.environment.set(\"client_secret\", response.data.client_secret);",
+									"        pm.collectionVariables.set(\"payment_intent_id\", response.data.payment_intent_id);",
+									"        pm.collectionVariables.set(\"client_secret\", response.data.client_secret);",
+									"        console.log(\"Payment Intent ID:\", response.data.payment_intent_id);",
+									"        console.log(\"Client Secret:\", response.data.client_secret);",
+									"        console.log(\"Cart Total:\", response.data.cart_total);",
+									"        console.log(\"Discount Amount:\", response.data.discount_amount);",
+									"        console.log(\"Final Amount:\", response.data.amount);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"points_to_redeem\": 500\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/create-intent/checkout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"create-intent",
+								"checkout"
+							]
+						},
+						"description": "Create a payment intent for cart checkout. This processes all items in the user's cart.\n\n**Request Body:**\n- `points_to_redeem` (optional): Number of points to redeem (100 points = $1 discount, minimum 100 points)\n\n**Response:**\n- `payment_intent_id`: Stripe payment intent ID\n- `client_secret`: Client secret for confirming payment\n- `amount`: Final amount after discount\n- `cart_total`: Original cart total before discount\n- `discount_amount`: Discount amount from points\n- `points_redeemed`: Points redeemed\n\n**Note:** User must have items in cart before calling this endpoint."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for creating payment intents. Payment intents are required before processing payments with Stripe."
+		},
+		{
+			"name": "Payment Status",
+			"item": [
+				{
+					"name": "Get Payment Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/status/{{payment_intent_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"status",
+								"{{payment_intent_id}}"
+							]
+						},
+						"description": "Get the status of a payment intent.\n\n**Path Parameters:**\n- `payment_intent_id`: Stripe payment intent ID (from create payment intent response)\n\n**Response:**\n- `status`: Payment status (pending, processing, succeeded, failed, canceled, refunded)\n- `amount`: Payment amount in dollars\n- `currency`: Currency code\n- `tickets_created`: Boolean indicating if tickets were created\n- `created_at`: Payment intent creation timestamp\n- `updated_at`: Last update timestamp\n\n**Status Values:**\n- `pending`: Payment intent created, waiting for payment\n- `processing`: Payment is being processed\n- `succeeded`: Payment successful, tickets created ✅\n- `failed`: Payment failed\n- `canceled`: Payment was canceled\n- `refunded`: Payment was refunded"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for checking payment status and ticket creation status."
+		},
+		{
+			"name": "Webhook Testing",
+			"item": [
+				{
+					"name": "Webhook Endpoint (Stripe → Backend)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "stripe-signature",
+								"value": "{{stripe_signature}}",
+								"type": "text",
+								"description": "Stripe webhook signature (required for verification)"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"evt_test_webhook\",\n    \"object\": \"event\",\n    \"api_version\": \"2023-10-16\",\n    \"created\": 1234567890,\n    \"data\": {\n        \"object\": {\n            \"id\": \"pi_test_payment_intent\",\n            \"object\": \"payment_intent\",\n            \"amount\": 3000,\n            \"currency\": \"usd\",\n            \"status\": \"succeeded\",\n            \"client_secret\": \"pi_test_secret\",\n            \"metadata\": {\n                \"user_id\": \"user-uuid\",\n                \"payment_type\": \"single_purchase\"\n            }\n        }\n    },\n    \"livemode\": false,\n    \"pending_webhooks\": 1,\n    \"request\": {\n        \"id\": null,\n        \"idempotency_key\": null\n    },\n    \"type\": \"payment_intent.succeeded\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/payments/webhook",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"webhook"
+							]
+						},
+						"description": "**⚠️ This endpoint is called by Stripe, not directly by clients.**\n\nStripe sends webhooks to this endpoint when payment events occur. The webhook signature must be verified.\n\n**Webhook Events Handled:**\n- `payment_intent.succeeded`: Payment succeeded, tickets are created automatically\n- `payment_intent.payment_failed`: Payment failed\n- `payment_intent.canceled`: Payment was canceled\n\n**Note:** For local testing, use Stripe CLI:\n```bash\nstripe listen --forward-to localhost:5000/api/v1/payments/webhook\n```\n\nFor production, configure webhook endpoint in Stripe Dashboard pointing to your backend URL.\n\n**Testing:** This request is for reference only. Actual webhooks come from Stripe with proper signatures."
+					},
+					"response": []
+				}
+			],
+			"description": "Webhook endpoint information. These are called by Stripe, not by clients directly."
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string",
+			"description": "JWT access token from login/register endpoint"
+		},
+		{
+			"key": "payment_intent_id",
+			"value": "",
+			"type": "string",
+			"description": "Payment intent ID from create payment intent response"
+		},
+		{
+			"key": "client_secret",
+			"value": "",
+			"type": "string",
+			"description": "Client secret for confirming payment (used in mobile app)"
+		},
+		{
+			"key": "stripe_signature",
+			"value": "",
+			"type": "string",
+			"description": "Stripe webhook signature (for webhook testing only)"
+		}
+	]
+}
+
