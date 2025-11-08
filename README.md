@@ -8,6 +8,7 @@ Production-ready Express.js + MongoDB backend for TMG Competitions Ltd - Online 
 - ✅ OTP-based email verification (mocked for demo)
 - ✅ Competition management (user & admin)
 - ✅ Ticket purchase system with points
+- ✅ Stripe payment integration (test/live mode)
 - ✅ Results & winners management
 - ✅ Notifications system
 - ✅ Points management with history
@@ -59,6 +60,10 @@ EMAIL_SERVICE=demo
 
 # OTP Configuration (Mocked for now)
 OTP_EXPIRE_MINUTES=10
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_...  # Your Stripe secret key (test or live)
+STRIPE_WEBHOOK_SECRET=whsec_...  # Webhook signing secret (get from Stripe Dashboard)
 ```
 
 ### 3. Seed Test Accounts
@@ -155,10 +160,18 @@ All responses follow a consistent structure:
 - `GET /competitions/:id` - Get competition by ID
 
 ### Tickets (`/api/tickets`)
-- `POST /tickets/purchase` - Purchase tickets (auth required)
+- `POST /tickets/purchase` - Purchase tickets (auth required) - **DEPRECATED: Use payment endpoints**
 - `GET /tickets/my` - Get user's tickets (auth required)
 - `GET /tickets/competition/:id` - Get tickets for competition (auth required)
 - `GET /tickets/search` - Search by ticket number
+
+### Payments (`/api/payments`)
+- `POST /payments/create-intent/single` - Create payment intent for single ticket purchase (auth required)
+- `POST /payments/create-intent/checkout` - Create payment intent for cart checkout (auth required)
+- `GET /payments/status/:payment_intent_id` - Get payment status (auth required)
+- `POST /payments/webhook` - Stripe webhook endpoint (no auth, signature verified)
+
+**📱 Mobile Integration**: See [docs/STRIPE_MOBILE_INTEGRATION.md](./docs/STRIPE_MOBILE_INTEGRATION.md) for Flutter integration guide.
 
 ### Results (`/api/results`)
 - `GET /results` - List results

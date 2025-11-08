@@ -118,8 +118,13 @@ const validateOAuthEnv = () => {
     warnings.push('FRONTEND_URL is not set (using default: http://localhost:3000)');
   }
 
+  // Stripe webhook secret (optional for development, required for production)
+  if (!process.env.STRIPE_WEBHOOK_SECRET && process.env.NODE_ENV === 'production') {
+    warnings.push('STRIPE_WEBHOOK_SECRET is not set (webhooks will not work in production)');
+  }
+
   if (warnings.length > 0) {
-    logger.warn('OAuth configuration warnings:', warnings);
+    logger.warn('Configuration warnings:', warnings);
   }
 };
 

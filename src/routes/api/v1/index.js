@@ -15,6 +15,7 @@ router.use('/terms', require('./public/terms'));
 router.use('/help-support', require('./public/helpSupport'));
 router.use('/points', require('./public/points'));
 router.use('/tickets', require('./public/tickets'));
+router.use('/payments', require('./payments'));
 
 module.exports = router;
 
