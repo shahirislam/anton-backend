@@ -11,6 +11,7 @@ router.post('/request-otp', sensitiveActionLimiter, validate(authController.otpV
 router.post('/verify-otp', authLimiter, validate(authController.verifyOtpValidation), authController.verifyOTP);
 router.post('/forgot-password', sensitiveActionLimiter, validate(authController.forgotPasswordValidation), authController.forgotPassword);
 router.post('/reset-password', sensitiveActionLimiter, validate(authController.resetPasswordValidation), authController.resetPassword);
+router.post('/change-password', authMiddleware, sensitiveActionLimiter, validate(authController.changePasswordValidation), authController.changePassword);
 router.post('/logout', authMiddleware, authController.logout);
 
 // Social authentication routes

@@ -189,6 +189,46 @@ const resetPassword = async (token, newPassword) => {
   }
 };
 
+const changePassword = async (userId, currentPassword, newPassword) => {
+  // Get user with password field
+  const user = await User.findById(userId).select('+password');
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Check if user is a local auth user
+  if (user.authProvider !== 'local') {
+    throw new Error(`Password change is not available for ${user.authProvider} accounts. Please use social login.`);
+  }
+
+  // Check if user has a password set
+  if (!user.password) {
+    throw new Error('No password set. Please use forgot password to set a password.');
+  }
+
+  // Verify current password
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Check if new password is different from current password
+  const isSamePassword = await user.comparePassword(newPassword);
+  if (isSamePassword) {
+    throw new Error('New password must be different from current password');
+  }
+
+  // Update password (will be hashed automatically by pre-save hook)
+  user.password = newPassword;
+  await user.save();
+
+  logger.info('Password changed successfully', { userId });
+
+  return {
+    message: 'Password changed successfully',
+  };
+};
+
 module.exports = {
   register,
   login,
@@ -196,5 +236,6 @@ module.exports = {
   verifyOTPCode,
   forgotPassword,
   resetPassword,
+  changePassword,
 };
 

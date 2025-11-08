@@ -158,6 +158,7 @@ All responses follow a consistent structure:
 - `POST /auth/verify-otp` - Verify OTP
 - `POST /auth/forgot-password` - Password reset request
 - `POST /auth/reset-password` - Password reset
+- `POST /auth/change-password` - Change password (auth required) ⭐ **NEW**
 - `POST /auth/logout` - Logout
 
 ### Competitions (`/api/competitions`)

@@ -91,6 +91,27 @@ const logout = async (req, res) => {
   res.success('Logged out successfully');
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password, confirm_password } = req.body;
+    const userId = req.user._id;
+
+    const result = await authService.changePassword(userId, current_password, new_password);
+
+    res.success(result.message);
+  } catch (error) {
+    if (
+      error.message === 'Current password is incorrect' ||
+      error.message === 'User not found' ||
+      error.message.includes('Password change is not available') ||
+      error.message === 'No password set'
+    ) {
+      return res.error(error.message, 400);
+    }
+    res.error(error.message || 'Failed to change password', 500);
+  }
+};
+
 // Validation schemas using Joi
 const registerValidation = Joi.object({
   name: Joi.string().trim().required().messages({
@@ -159,6 +180,21 @@ const resetPasswordValidation = Joi.object({
   }),
 });
 
+const changePasswordValidation = Joi.object({
+  current_password: Joi.string().required().messages({
+    'string.empty': 'Current password is required',
+    'any.required': 'Current password is required',
+  }),
+  new_password: Joi.string().min(6).required().messages({
+    'string.min': 'New password must be at least 6 characters',
+    'any.required': 'New password is required',
+  }),
+  confirm_password: Joi.string().valid(Joi.ref('new_password')).required().messages({
+    'any.only': 'Confirm password must match new password',
+    'any.required': 'Confirm password is required',
+  }),
+});
+
 module.exports = {
   register,
   login,
@@ -167,11 +203,13 @@ module.exports = {
   forgotPassword,
   resetPassword,
   logout,
+  changePassword,
   registerValidation,
   loginValidation,
   otpValidation,
   verifyOtpValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  changePasswordValidation,
 };
 
