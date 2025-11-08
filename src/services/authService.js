@@ -11,10 +11,16 @@ const register = async (name, email, password) => {
     throw new Error('Email already registered');
   }
 
+  // Ensure password is provided for local registration
+  if (!password) {
+    throw new Error('Password is required for registration');
+  }
+
   const user = new User({
     name,
     email,
     password,
+    authProvider: 'local', // Explicitly set for local registration
   });
 
   await user.save();
@@ -39,6 +45,16 @@ const login = async (email, password) => {
   const user = await User.findOne({ email }).select('+password');
   if (!user) {
     throw new Error('Invalid email or password');
+  }
+
+  // Check if user is a social auth user (should use social login instead)
+  if (user.authProvider !== 'local') {
+    throw new Error(`Please use ${user.authProvider} to sign in`);
+  }
+
+  // Check if user has a password set
+  if (!user.password) {
+    throw new Error('Please set a password or use social login');
   }
 
   const isMatch = await user.comparePassword(password);

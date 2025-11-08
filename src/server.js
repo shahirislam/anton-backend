@@ -15,15 +15,29 @@ let server;
 
 const startServer = async () => {
   try {
+    console.log('Starting server...');
+    console.log(`PORT: ${PORT}`);
+    console.log(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    
     await connectDB();
+    console.log('Database connected successfully');
 
-    server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`, {
+    server = app.listen(PORT, '0.0.0.0', () => {
+      const message = `Server running on port ${PORT}`;
+      console.log(message);
+      logger.info(message, {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
       });
     });
+
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+      logger.error('Server error', { error: error.message, stack: error.stack });
+    });
   } catch (error) {
+    console.error('Failed to start server:', error.message);
+    console.error('Stack:', error.stack);
     logger.error('Failed to start server', { error: error.message, stack: error.stack });
     process.exit(1);
   }

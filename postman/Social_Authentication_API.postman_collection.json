@@ -1,0 +1,561 @@
+{
+	"info": {
+		"_postman_id": "social-auth-api-collection",
+		"name": "Social Authentication API",
+		"description": "API collection for Social Authentication (Google, Apple, Instagram) with account linking support",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Google Authentication",
+			"item": [
+				{
+					"name": "1. Initiate Google OAuth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success) {",
+									"        pm.environment.set(\"google_auth_url\", response.data.authUrl);",
+									"        pm.environment.set(\"oauth_state\", response.data.state);",
+									"        pm.collectionVariables.set(\"google_auth_url\", response.data.authUrl);",
+									"        pm.collectionVariables.set(\"oauth_state\", response.data.state);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/google",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"google"
+							]
+						},
+						"description": "Get Google OAuth authorization URL. Copy the authUrl and open it in a browser to complete authentication. The server will redirect to the callback URL with tokens."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Google OAuth Callback (Manual)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/google/callback?code=AUTHORIZATION_CODE&state={{oauth_state}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"google",
+								"callback"
+							],
+							"query": [
+								{
+									"key": "code",
+									"value": "AUTHORIZATION_CODE",
+									"description": "Authorization code from Google (get this from the authUrl redirect)"
+								},
+								{
+									"key": "state",
+									"value": "{{oauth_state}}",
+									"description": "State token from step 1"
+								}
+							]
+						},
+						"description": "**Note:** This endpoint redirects to frontend URL. For testing, you can manually construct the URL with the code from Google's redirect. The server will redirect to: {{frontend_url}}/auth/callback?token=ACCESS_TOKEN&refreshToken=REFRESH_TOKEN"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Apple Sign In",
+			"item": [
+				{
+					"name": "Apple Sign In",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data.accessToken) {",
+									"        pm.environment.set(\"access_token\", response.data.accessToken);",
+									"        pm.environment.set(\"refresh_token\", response.data.refreshToken);",
+									"        pm.collectionVariables.set(\"access_token\", response.data.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idToken\": \"eyJraWQiOiJlWGF1bm1...\",\n  \"user\": {\n    \"email\": \"user@example.com\",\n    \"name\": {\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\"\n    }\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/apple",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"apple"
+							]
+						},
+						"description": "Authenticate with Apple Sign In. The idToken is obtained from Apple's native SDK. The user object is only provided on first sign-in."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Instagram Authentication",
+			"item": [
+				{
+					"name": "1. Initiate Instagram OAuth",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success) {",
+									"        pm.environment.set(\"instagram_auth_url\", response.data.authUrl);",
+									"        pm.environment.set(\"instagram_oauth_state\", response.data.state);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/instagram",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"instagram"
+							]
+						},
+						"description": "Get Instagram OAuth authorization URL. Open the authUrl in a browser to complete authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Instagram OAuth Callback (Manual)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/instagram/callback?code=AUTHORIZATION_CODE&state={{instagram_oauth_state}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"instagram",
+								"callback"
+							],
+							"query": [
+								{
+									"key": "code",
+									"value": "AUTHORIZATION_CODE",
+									"description": "Authorization code from Instagram"
+								},
+								{
+									"key": "state",
+									"value": "{{instagram_oauth_state}}",
+									"description": "State token from step 1"
+								}
+							]
+						},
+						"description": "**Note:** This endpoint redirects to frontend URL. The server will redirect to: {{frontend_url}}/auth/callback?token=ACCESS_TOKEN&refreshToken=REFRESH_TOKEN"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Account Linking",
+			"item": [
+				{
+					"name": "Link Google Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"provider\": \"google\",\n  \"code\": \"AUTHORIZATION_CODE_FROM_GOOGLE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/social/link",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"social",
+								"link"
+							]
+						},
+						"description": "Link a Google account to the authenticated user. Requires authentication token."
+					},
+					"response": []
+				},
+				{
+					"name": "Link Apple Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"provider\": \"apple\",\n  \"idToken\": \"APPLE_ID_TOKEN\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/social/link",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"social",
+								"link"
+							]
+						},
+						"description": "Link an Apple account to the authenticated user. Requires authentication token."
+					},
+					"response": []
+				},
+				{
+					"name": "Link Instagram Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"provider\": \"instagram\",\n  \"code\": \"AUTHORIZATION_CODE_FROM_INSTAGRAM\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/social/link",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"social",
+								"link"
+							]
+						},
+						"description": "Link an Instagram account to the authenticated user. Requires authentication token."
+					},
+					"response": []
+				},
+				{
+					"name": "Unlink Social Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"provider\": \"google\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/social/unlink",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"social",
+								"unlink"
+							]
+						},
+						"description": "Unlink a social account from the authenticated user. Cannot unlink primary auth method without setting a password first."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Testing Workflows",
+			"item": [
+				{
+					"name": "Complete Google Auth Flow",
+					"item": [
+						{
+							"name": "Step 1: Get Auth URL",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/google",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"google"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 2: Open URL in Browser",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{google_auth_url}}",
+									"host": [
+										"{{google_auth_url}}"
+									]
+								},
+								"description": "**Manual Step:** Copy the authUrl from Step 1 and open it in a browser. After Google authentication, you'll be redirected with a code. Extract the code from the redirect URL."
+							},
+							"response": []
+						},
+						{
+							"name": "Step 3: Complete Callback (with code)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/google/callback?code=EXTRACTED_CODE&state={{oauth_state}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"google",
+										"callback"
+									],
+									"query": [
+										{
+											"key": "code",
+											"value": "EXTRACTED_CODE",
+											"description": "Replace with code from Step 2 redirect"
+										},
+										{
+											"key": "state",
+											"value": "{{oauth_state}}",
+											"description": "State from Step 1"
+										}
+									]
+								},
+								"description": "Replace EXTRACTED_CODE with the actual code from Google's redirect. The server will redirect to frontend with tokens."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Test Apple Sign In",
+					"item": [
+						{
+							"name": "Apple Sign In (with mock token)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"idToken\": \"REPLACE_WITH_ACTUAL_APPLE_ID_TOKEN\",\n  \"user\": {\n    \"email\": \"test@example.com\",\n    \"name\": {\n      \"firstName\": \"Test\",\n      \"lastName\": \"User\"\n    }\n  }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/apple",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"apple"
+									]
+								},
+								"description": "**Note:** Replace idToken with actual token from Apple Sign In SDK. For testing, you can use a valid Apple idToken from a real device."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "frontend_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "google_auth_url",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "oauth_state",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "instagram_auth_url",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "instagram_oauth_state",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

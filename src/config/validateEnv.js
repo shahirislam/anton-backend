@@ -65,6 +65,62 @@ const validateEnv = () => {
     logger.error(`Missing or invalid environment variables: ${errorNames}. See README.md for setup.`);
     process.exit(1);
   }
+
+  // Validate OAuth configuration if providers are enabled
+  validateOAuthEnv();
+};
+
+/**
+ * Validate OAuth environment variables conditionally
+ * Only validates if provider is enabled (not explicitly disabled)
+ */
+const validateOAuthEnv = () => {
+  const warnings = [];
+
+  // Google OAuth validation
+  if (process.env.ENABLE_GOOGLE_AUTH !== 'false') {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      warnings.push('GOOGLE_CLIENT_ID is missing (Google OAuth may not work)');
+    }
+    if (!process.env.GOOGLE_CLIENT_SECRET) {
+      warnings.push('GOOGLE_CLIENT_SECRET is missing (Google OAuth may not work)');
+    }
+  }
+
+  // Apple Sign In validation
+  if (process.env.ENABLE_APPLE_AUTH !== 'false') {
+    if (!process.env.APPLE_CLIENT_ID) {
+      warnings.push('APPLE_CLIENT_ID is missing (Apple Sign In may not work)');
+    }
+    if (!process.env.APPLE_TEAM_ID) {
+      warnings.push('APPLE_TEAM_ID is missing (Apple Sign In may not work)');
+    }
+    if (!process.env.APPLE_KEY_ID) {
+      warnings.push('APPLE_KEY_ID is missing (Apple Sign In may not work)');
+    }
+    if (!process.env.APPLE_PRIVATE_KEY && !process.env.APPLE_PRIVATE_KEY_PATH) {
+      warnings.push('APPLE_PRIVATE_KEY or APPLE_PRIVATE_KEY_PATH is missing (Apple Sign In may not work)');
+    }
+  }
+
+  // Instagram OAuth validation
+  if (process.env.ENABLE_INSTAGRAM_AUTH !== 'false') {
+    if (!process.env.INSTAGRAM_CLIENT_ID) {
+      warnings.push('INSTAGRAM_CLIENT_ID is missing (Instagram OAuth may not work)');
+    }
+    if (!process.env.INSTAGRAM_CLIENT_SECRET) {
+      warnings.push('INSTAGRAM_CLIENT_SECRET is missing (Instagram OAuth may not work)');
+    }
+  }
+
+  // Frontend URL (optional but recommended)
+  if (!process.env.FRONTEND_URL) {
+    warnings.push('FRONTEND_URL is not set (using default: http://localhost:3000)');
+  }
+
+  if (warnings.length > 0) {
+    logger.warn('OAuth configuration warnings:', warnings);
+  }
 };
 
 module.exports = validateEnv;

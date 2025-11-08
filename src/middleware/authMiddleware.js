@@ -32,7 +32,9 @@ const authMiddleware = async (req, res, next) => {
         return res.error('User not found', 404);
       }
 
-      if (!user.verified) {
+      // Social auth users are auto-verified, skip verification check for them
+      // Local auth users must verify their email
+      if (!user.verified && user.authProvider === 'local') {
         return res.error('Please verify your email address first', 403);
       }
 

@@ -23,10 +23,36 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function() {
+        return this.authProvider === 'local';
+      },
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google', 'apple', 'instagram'],
+      default: 'local',
+    },
+    socialId: {
+      type: String,
+      default: null,
+    },
+    socialAccounts: [{
+      provider: {
+        type: String,
+        enum: ['google', 'apple', 'instagram'],
+        required: true,
+      },
+      socialId: {
+        type: String,
+        required: true,
+      },
+      email: {
+        type: String,
+        required: true,
+      },
+    }],
     otp: {
       type: String,
       default: null,
@@ -96,9 +122,10 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving
+// Hash password before saving (only for local auth)
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Skip password hashing for social auth users or if password not modified
+  if (this.authProvider !== 'local' || !this.isModified('password') || !this.password) {
     return next();
   }
 
@@ -111,6 +138,14 @@ userSchema.pre('save', async function (next) {
   }
 });
 
+// Auto-verify social auth users
+userSchema.pre('save', async function (next) {
+  if (this.authProvider !== 'local' && !this.verified) {
+    this.verified = true;
+  }
+  next();
+});
+
 // Method to compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
@@ -118,6 +153,8 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Indexes
 userSchema.index({ role: 1 }); // email already indexed via unique: true
+userSchema.index({ socialId: 1 }); // Index for social ID lookups
+userSchema.index({ 'socialAccounts.socialId': 1 }); // Index for linked account lookups
 
 const User = mongoose.model('User', userSchema);
 

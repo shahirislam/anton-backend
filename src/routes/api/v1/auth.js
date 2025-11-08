@@ -13,5 +13,8 @@ router.post('/forgot-password', sensitiveActionLimiter, validate(authController.
 router.post('/reset-password', sensitiveActionLimiter, validate(authController.resetPasswordValidation), authController.resetPassword);
 router.post('/logout', authMiddleware, authController.logout);
 
+// Social authentication routes
+router.use('/', require('./socialAuth'));
+
 module.exports = router;
 
