@@ -44,7 +44,7 @@ const healthCheck = async (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
-app.use('/api', require('./routes/api/v1'));
+app.use('/api/v1', require('./routes/api/v1'));
 
 app.use((req, res) => {
   res.error('Route not found', 404);
