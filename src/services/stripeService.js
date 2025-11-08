@@ -1,5 +1,13 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const Stripe = require('stripe');
 const logger = require('../utils/logger');
+
+// Initialize Stripe only if API key is provided
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+  logger.warn('STRIPE_SECRET_KEY is not set. Stripe functionality will be disabled.');
+}
 
 /**
  * Create a payment intent for ticket purchase
@@ -13,6 +21,10 @@ const logger = require('../utils/logger');
  */
 const createPaymentIntent = async ({ amount, currency = 'usd', userId, paymentType, metadata = {} }) => {
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+
     if (!amount || amount < 50) {
       // Stripe minimum is $0.50 (50 cents)
       throw new Error('Amount must be at least $0.50');
@@ -57,6 +69,10 @@ const createPaymentIntent = async ({ amount, currency = 'usd', userId, paymentTy
  */
 const retrievePaymentIntent = async (paymentIntentId) => {
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     return paymentIntent;
   } catch (error) {
@@ -76,6 +92,10 @@ const retrievePaymentIntent = async (paymentIntentId) => {
  */
 const confirmPaymentIntent = async (paymentIntentId, paymentMethodId = null) => {
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+
     const params = {};
     if (paymentMethodId) {
       params.payment_method = paymentMethodId;
@@ -99,6 +119,10 @@ const confirmPaymentIntent = async (paymentIntentId, paymentMethodId = null) => 
  */
 const cancelPaymentIntent = async (paymentIntentId) => {
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+
     const paymentIntent = await stripe.paymentIntents.cancel(paymentIntentId);
     logger.info('Payment intent canceled', {
       payment_intent_id: paymentIntentId,
@@ -121,6 +145,10 @@ const cancelPaymentIntent = async (paymentIntentId) => {
  */
 const createRefund = async (paymentIntentId, amount = null) => {
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+    }
+
     const params = {
       payment_intent: paymentIntentId,
     };
@@ -152,6 +180,10 @@ const createRefund = async (paymentIntentId, amount = null) => {
  * @returns {Object} Webhook event
  */
 const verifyWebhookSignature = (payload, signature) => {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   if (!webhookSecret) {
