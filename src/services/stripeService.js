@@ -12,7 +12,7 @@ if (process.env.STRIPE_SECRET_KEY) {
 /**
  * Create a payment intent for ticket purchase
  * @param {Object} params - Payment parameters
- * @param {Number} params.amount - Amount in cents
+ * @param {Number} params.amount - Amount in dollars (e.g., 30.00 for $30)
  * @param {String} params.currency - Currency code (default: 'usd')
  * @param {String} params.userId - User ID
  * @param {String} params.paymentType - 'single_purchase' or 'cart_checkout'
@@ -25,8 +25,9 @@ const createPaymentIntent = async ({ amount, currency = 'usd', userId, paymentTy
       throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
     }
 
-    if (!amount || amount < 50) {
+    if (!amount || amount < 0.5) {
       // Stripe minimum is $0.50 (50 cents)
+      // Amount is passed in dollars, so we check for 0.5
       throw new Error('Amount must be at least $0.50');
     }
 
