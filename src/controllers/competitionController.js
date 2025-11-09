@@ -56,7 +56,7 @@ const getCompetitions = async (req, res) => {
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = competition.toObject();
       if (comp.image_url && !comp.image_url.startsWith('http')) {
-        comp.image_url = getFileUrl(comp.image_url);
+        comp.image_url = getFileUrl(comp.image_url, req);
       }
       return comp;
     });
@@ -123,7 +123,7 @@ const getRecentCompetitions = async (req, res) => {
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = { ...competition };
       if (comp.image_url && !comp.image_url.startsWith('http')) {
-        comp.image_url = getFileUrl(comp.image_url);
+        comp.image_url = getFileUrl(comp.image_url, req);
       }
       // Add is_favorite field (true if competition ID is in favoriteIds array)
       comp.is_favorite = userId ? favoriteIds.includes(comp._id.toString()) : false;
@@ -157,7 +157,7 @@ const searchCompetitions = async (req, res) => {
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = competition.toObject();
       if (comp.image_url && !comp.image_url.startsWith('http')) {
-        comp.image_url = getFileUrl(comp.image_url);
+        comp.image_url = getFileUrl(comp.image_url, req);
       }
       return comp;
     });
@@ -221,12 +221,12 @@ const getCompetitionById = async (req, res) => {
 
     // Convert image_url to full URL if it's a local file
     if (competitionData.image_url && !competitionData.image_url.startsWith('http')) {
-      competitionData.image_url = getFileUrl(competitionData.image_url);
+      competitionData.image_url = getFileUrl(competitionData.image_url, req);
     }
 
     // Also convert category image_url if it exists
     if (competitionData.category_id && competitionData.category_id.image_url && !competitionData.category_id.image_url.startsWith('http')) {
-      competitionData.category_id.image_url = getFileUrl(competitionData.category_id.image_url);
+      competitionData.category_id.image_url = getFileUrl(competitionData.category_id.image_url, req);
     }
 
     // Add user-specific fields if authenticated
@@ -347,7 +347,7 @@ const getMyFavorites = async (req, res) => {
     const competitionsWithUrls = orderedCompetitions.map((competition) => {
       const comp = competition.toObject ? competition.toObject() : competition;
       if (comp.image_url && !comp.image_url.startsWith('http')) {
-        comp.image_url = getFileUrl(comp.image_url);
+        comp.image_url = getFileUrl(comp.image_url, req);
       }
       return comp;
     });
@@ -428,7 +428,7 @@ const getMyCompetitions = async (req, res) => {
           
           // Convert image_url to full URL
           if (competition.image_url && !competition.image_url.startsWith('http')) {
-            competition.image_url = getFileUrl(competition.image_url);
+            competition.image_url = getFileUrl(competition.image_url, req);
           }
           
           return competition;

@@ -8,6 +8,9 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
+// Trust proxy - important for getting correct protocol/host when behind reverse proxy (Render, Heroku, etc.)
+app.set('trust proxy', true);
+
 app.use(helmet());
 app.use(cors());
 

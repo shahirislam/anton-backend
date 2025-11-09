@@ -38,10 +38,10 @@ const deleteFile = async (filePath) => {
 /**
  * Get the full URL for a file path
  * @param {string} filePath - Relative path from public folder (e.g., /uploads/competitions/image.jpg)
- * @param {string} baseUrl - Base URL of the application (from environment or default)
+ * @param {string|object} baseUrlOrReq - Base URL string OR Express request object (optional)
  * @returns {string} - Full URL
  */
-const getFileUrl = (filePath, baseUrl = null) => {
+const getFileUrl = (filePath, baseUrlOrReq = null) => {
   if (!filePath) return null;
   
   // If it's already a full URL, return as is
@@ -49,8 +49,26 @@ const getFileUrl = (filePath, baseUrl = null) => {
     return filePath;
   }
 
-  // Determine base URL: use provided, then BASE_URL, then APP_URL, then default
-  const appBaseUrl = baseUrl || process.env.BASE_URL || process.env.APP_URL || 'http://localhost:5000';
+  let appBaseUrl = null;
+
+  // If baseUrlOrReq is a request object, derive base URL from request headers
+  if (baseUrlOrReq && typeof baseUrlOrReq === 'object' && baseUrlOrReq.headers) {
+    const req = baseUrlOrReq;
+    // Check for X-Forwarded-Proto header (used by reverse proxies like Render, Heroku, etc.)
+    const forwardedProto = req.get('x-forwarded-proto') || req.headers['x-forwarded-proto'];
+    const protocol = forwardedProto || req.protocol || (req.secure ? 'https' : 'http');
+    const host = req.get('host') || req.headers.host;
+    
+    if (host) {
+      appBaseUrl = `${protocol}://${host}`;
+    }
+  } else if (typeof baseUrlOrReq === 'string') {
+    // If it's a string, use it as base URL
+    appBaseUrl = baseUrlOrReq;
+  }
+
+  // Fallback to environment variables or default
+  appBaseUrl = appBaseUrl || process.env.BASE_URL || process.env.APP_URL || 'http://localhost:5000';
 
   // Ensure path starts with /
   const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
