@@ -161,6 +161,17 @@ All responses follow a consistent structure:
 - `POST /auth/change-password` - Change password (auth required) ⭐ **NEW**
 - `POST /auth/logout` - Logout
 
+### Social Authentication (`/api/auth`)
+- `GET /auth/google` - Get Google OAuth URL (web)
+- `GET /auth/google/callback` - Google OAuth callback (web)
+- `POST /auth/google/mobile` - Google Sign-In with idToken (mobile) ⭐ **NEW**
+- `POST /auth/apple` - Apple Sign-In with idToken (mobile)
+- `GET /auth/instagram` - Get Instagram OAuth URL (web)
+- `POST /auth/link` - Link social account (auth required)
+- `POST /auth/unlink` - Unlink social account (auth required)
+
+**📱 Google Sign-In Setup**: See [docs/GOOGLE_CONSOLE_SETUP.md](./docs/GOOGLE_CONSOLE_SETUP.md) for Google Console configuration and [docs/GOOGLE_FLUTTER_INTEGRATION.md](./docs/GOOGLE_FLUTTER_INTEGRATION.md) for Flutter integration.
+
 ### Competitions (`/api/competitions`)
 - `GET /competitions` - List competitions (paginated)
 - `GET /competitions/recent` - Recent competitions

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const appleSignin = require('apple-signin-auth');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { generateTokens } = require('../utils/jwt');
 const { oauthConfig } = require('../config/oauth');
@@ -43,6 +44,44 @@ const authenticateGoogle = async (code) => {
     return await findOrCreateSocialUser('google', profile);
   } catch (error) {
     logger.error('Google authentication error', {
+      error: error.message,
+      stack: error.stack,
+    });
+    throw new Error('Google authentication failed');
+  }
+};
+
+/**
+ * Authenticate with Google idToken (for mobile apps)
+ * Mobile apps use Google Sign-In SDK which provides idToken directly
+ */
+const authenticateGoogleWithIdToken = async (idToken) => {
+  try {
+    const client = new OAuth2Client(oauthConfig.google.clientId);
+
+    // Verify the idToken
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: oauthConfig.google.clientId,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid Google idToken');
+    }
+
+    // Extract user info from token
+    const profile = {
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name || payload.given_name || 'User',
+      picture: payload.picture || null,
+      verified: payload.email_verified || false,
+    };
+
+    return await findOrCreateSocialUser('google', profile);
+  } catch (error) {
+    logger.error('Google idToken authentication error', {
       error: error.message,
       stack: error.stack,
     });
@@ -386,6 +425,7 @@ const unlinkSocialAccount = async (userId, provider) => {
 
 module.exports = {
   authenticateGoogle,
+  authenticateGoogleWithIdToken,
   authenticateApple,
   authenticateInstagram,
   findOrCreateSocialUser,

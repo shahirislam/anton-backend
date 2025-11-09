@@ -8,6 +8,8 @@ const validate = require('../../../middleware/joiValidator');
 // Google OAuth routes
 router.get('/google', authLimiter, socialAuthController.googleAuth);
 router.get('/google/callback', authLimiter, socialAuthController.googleCallback);
+// Google Sign-In for mobile (uses idToken from Google Sign-In SDK)
+router.post('/google/mobile', authLimiter, validate(socialAuthController.googleAuthMobileValidation), socialAuthController.googleAuthMobile);
 
 // Apple Sign In route (POST - receives idToken from client)
 router.post('/apple', authLimiter, validate(socialAuthController.appleAuthValidation), socialAuthController.appleAuth);

@@ -81,6 +81,39 @@ const googleCallback = async (req, res) => {
 };
 
 /**
+ * Handle Google Sign-In with idToken (for mobile apps)
+ * Receives idToken from Google Sign-In SDK (POST request)
+ */
+const googleAuthMobile = async (req, res) => {
+  try {
+    if (!isProviderEnabled('google')) {
+      return res.error('Google authentication is not enabled', 503);
+    }
+
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.error('Google idToken is required', 400);
+    }
+
+    const result = await socialAuthService.authenticateGoogleWithIdToken(idToken);
+
+    res.success('Google authentication successful', result);
+  } catch (error) {
+    logger.error('Google mobile auth error', {
+      error: error.message,
+      stack: error.stack,
+    });
+    
+    if (error.message.includes('authentication failed')) {
+      return res.error('Google authentication failed. Please try again.', 401);
+    }
+    
+    res.error(error.message || 'Google authentication failed', 500);
+  }
+};
+
+/**
  * Handle Apple Sign In
  * Receives idToken from client (POST request)
  */
@@ -253,6 +286,13 @@ const unlinkAccount = async (req, res) => {
 };
 
 // Validation schemas
+const googleAuthMobileValidation = Joi.object({
+  idToken: Joi.string().required().messages({
+    'string.empty': 'Google idToken is required',
+    'any.required': 'Google idToken is required',
+  }),
+});
+
 const appleAuthValidation = Joi.object({
   idToken: Joi.string().required().messages({
     'string.empty': 'Apple idToken is required',
@@ -295,11 +335,13 @@ const unlinkAccountValidation = Joi.object({
 module.exports = {
   googleAuth,
   googleCallback,
+  googleAuthMobile,
   appleAuth,
   instagramAuth,
   instagramCallback,
   linkAccount,
   unlinkAccount,
+  googleAuthMobileValidation,
   appleAuthValidation,
   linkAccountValidation,
   unlinkAccountValidation,
