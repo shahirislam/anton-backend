@@ -82,6 +82,11 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    userStatus: {
+      type: String,
+      enum: ['Active', 'Suspend'],
+      default: 'Active',
+    },
     total_points: {
       type: Number,
       default: 0,
@@ -155,6 +160,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 userSchema.index({ role: 1 }); // email already indexed via unique: true
 userSchema.index({ socialId: 1 }); // Index for social ID lookups
 userSchema.index({ 'socialAccounts.socialId': 1 }); // Index for linked account lookups
+userSchema.index({ userStatus: 1 }); // Index for user status lookups
 
 const User = mongoose.model('User', userSchema);
 

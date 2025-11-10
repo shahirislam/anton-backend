@@ -208,7 +208,7 @@ const createCheckoutIntent = async (req, res) => {
     res.error(error.message || 'Failed to create payment intent', 500);
   }
 };
-
+  
 /**
  * Handle Stripe webhook events
  */
