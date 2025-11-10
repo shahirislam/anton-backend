@@ -61,6 +61,10 @@ const createSinglePurchaseIntent = async (req, res) => {
       },
     });
 
+    // Generate transaction ID
+    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const transactionId = `TXN-${randomNum}`;
+
     // Save payment record
     const payment = new Payment({
       user_id: userId,
@@ -71,6 +75,7 @@ const createSinglePurchaseIntent = async (req, res) => {
       payment_type: 'single_purchase',
       competition_id: competition_id,
       quantity: quantity,
+      transaction_id: transactionId,
       metadata: {
         competition_title: competition.title,
       },
@@ -173,6 +178,10 @@ const createCheckoutIntent = async (req, res) => {
       },
     });
 
+    // Generate transaction ID
+    const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const transactionId = `TXN-${randomNum}`;
+
     // Save payment record
     const payment = new Payment({
       user_id: userId,
@@ -184,6 +193,7 @@ const createCheckoutIntent = async (req, res) => {
       cart_items: validCartItems,
       points_redeemed: pointsRedeemed,
       discount_amount: discountAmount,
+      transaction_id: transactionId,
       metadata: {
         cart_total: cartTotal.toString(),
       },
@@ -492,6 +502,14 @@ const handlePaymentFailure = async (paymentIntent) => {
     if (payment) {
       payment.status = 'failed';
       payment.stripe_response = paymentIntent;
+      // Extract failure reason from Stripe response
+      const lastPaymentError = paymentIntent.last_payment_error;
+      payment.failure_reason = lastPaymentError?.message || 'Payment failed';
+      // Generate transaction ID if not exists
+      if (!payment.transaction_id) {
+        const randomNum = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        payment.transaction_id = `TXN-${randomNum}`;
+      }
       await payment.save();
 
       logger.info('Payment marked as failed', {

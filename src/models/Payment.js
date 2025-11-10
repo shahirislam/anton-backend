@@ -31,9 +31,35 @@ const paymentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded'],
+      enum: ['pending', 'processing', 'succeeded', 'completed', 'failed', 'canceled', 'refunded'],
       default: 'pending',
       index: true,
+    },
+    transaction_id: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    refund_reason: {
+      type: String,
+      default: null,
+    },
+    failure_reason: {
+      type: String,
+      default: null,
+    },
+    refunded_at: {
+      type: Date,
+      default: null,
+    },
+    refund_amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    provider_transaction_id: {
+      type: String,
+      default: null,
     },
     payment_type: {
       type: String,

@@ -17,6 +17,7 @@ router.use('/faqs', require('./faqs'));
 router.use('/terms', require('./terms'));
 router.use('/help-support', require('./helpSupport'));
 router.use('/dashboard', require('./dashboard'));
+router.use('/payments', require('./payments'));
 
 module.exports = router;
 
