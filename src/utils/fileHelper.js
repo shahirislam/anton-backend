@@ -54,12 +54,41 @@ const getFileUrl = (filePath, baseUrlOrReq = null) => {
   // If baseUrlOrReq is a request object, derive base URL from request headers
   if (baseUrlOrReq && typeof baseUrlOrReq === 'object' && baseUrlOrReq.headers) {
     const req = baseUrlOrReq;
-    // Check for X-Forwarded-Proto header (used by reverse proxies like Render, Heroku, etc.)
+    
+    // Get protocol - check X-Forwarded-Proto first (for reverse proxies)
+    let protocol = 'http';
     const forwardedProto = req.get('x-forwarded-proto') || req.headers['x-forwarded-proto'];
-    const protocol = forwardedProto || req.protocol || (req.secure ? 'https' : 'http');
-    const host = req.get('host') || req.headers.host;
+    if (forwardedProto) {
+      protocol = forwardedProto.split(',')[0].trim(); // Handle multiple proxies
+    } else if (req.protocol) {
+      protocol = req.protocol;
+    } else if (req.secure) {
+      protocol = 'https';
+    }
+    
+    // Ensure protocol is http or https
+    if (protocol !== 'http' && protocol !== 'https') {
+      protocol = 'https'; // Default to https for production
+    }
+    
+    // Get host - try multiple methods
+    let host = null;
+    if (req.get && typeof req.get === 'function') {
+      host = req.get('host');
+    }
+    if (!host && req.headers) {
+      host = req.headers.host || req.headers['x-forwarded-host'];
+    }
     
     if (host) {
+      // Remove port if it's the default port for the protocol
+      const hostParts = host.split(':');
+      if (hostParts.length === 2) {
+        const port = parseInt(hostParts[1]);
+        if ((protocol === 'http' && port === 80) || (protocol === 'https' && port === 443)) {
+          host = hostParts[0];
+        }
+      }
       appBaseUrl = `${protocol}://${host}`;
     }
   } else if (typeof baseUrlOrReq === 'string') {

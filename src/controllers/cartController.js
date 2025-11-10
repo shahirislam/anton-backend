@@ -112,7 +112,7 @@ const getCart = async (req, res) => {
       // Convert image_url to full URL if it's a local file
       let imageUrl = comp.image_url;
       if (imageUrl && !imageUrl.startsWith('http')) {
-        imageUrl = getFileUrl(imageUrl);
+        imageUrl = getFileUrl(imageUrl, req);
       }
 
       return {

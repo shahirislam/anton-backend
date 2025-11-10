@@ -15,7 +15,7 @@ const getProfile = async (req, res) => {
     // Convert profile_image to full URL if it's a local file
     const userData = user.toObject();
     if (userData.profile_image && !userData.profile_image.startsWith('http')) {
-      userData.profile_image = getFileUrl(userData.profile_image);
+      userData.profile_image = getFileUrl(userData.profile_image, req);
     }
 
     res.success('Profile retrieved successfully', { user: userData });
@@ -62,7 +62,7 @@ const updateProfile = async (req, res) => {
     // Convert profile_image to full URL if it's a local file
     const userData = user.toObject();
     if (userData.profile_image && !userData.profile_image.startsWith('http')) {
-      userData.profile_image = getFileUrl(userData.profile_image);
+      userData.profile_image = getFileUrl(userData.profile_image, req);
     }
 
     res.success('Profile updated successfully', { user: userData });

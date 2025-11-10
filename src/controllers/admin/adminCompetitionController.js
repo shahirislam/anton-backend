@@ -17,7 +17,7 @@ const createCompetition = async (req, res) => {
     await competition.save();
 
     if (competition.image_url) {
-      competition.image_url = getFileUrl(competition.image_url);
+      competition.image_url = getFileUrl(competition.image_url, req);
     }
 
     res.success('Competition created successfully', { competition }, 201);
@@ -51,7 +51,7 @@ const updateCompetition = async (req, res) => {
     await competition.save();
 
     if (competition.image_url) {
-      competition.image_url = getFileUrl(competition.image_url);
+      competition.image_url = getFileUrl(competition.image_url, req);
     }
 
     res.success('Competition updated successfully', { competition });
@@ -110,7 +110,7 @@ const getCompetitions = async (req, res) => {
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = competition.toObject();
       if (comp.image_url && !comp.image_url.startsWith('http')) {
-        comp.image_url = getFileUrl(comp.image_url);
+        comp.image_url = getFileUrl(comp.image_url, req);
       }
       return comp;
     });

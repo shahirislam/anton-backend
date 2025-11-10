@@ -142,7 +142,7 @@ const getMyTickets = async (req, res) => {
     const ticketsWithUrls = tickets.map((ticket) => {
       const ticketObj = ticket.toObject();
       if (ticketObj.competition_id && ticketObj.competition_id.image_url && !ticketObj.competition_id.image_url.startsWith('http')) {
-        ticketObj.competition_id.image_url = getFileUrl(ticketObj.competition_id.image_url);
+        ticketObj.competition_id.image_url = getFileUrl(ticketObj.competition_id.image_url, req);
       }
       return ticketObj;
     });

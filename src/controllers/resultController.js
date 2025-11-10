@@ -16,7 +16,7 @@ const getResults = async (req, res) => {
     const resultsWithUrls = results.map((result) => {
       const resultObj = result.toObject();
       if (resultObj.competition_id && resultObj.competition_id.image_url && !resultObj.competition_id.image_url.startsWith('http')) {
-        resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url);
+        resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url, req);
       }
       return resultObj;
     });
@@ -47,7 +47,7 @@ const getResultById = async (req, res) => {
     const resultObj = result.toObject();
     
     if (resultObj.competition_id && resultObj.competition_id.image_url && !resultObj.competition_id.image_url.startsWith('http')) {
-      resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url);
+      resultObj.competition_id.image_url = getFileUrl(resultObj.competition_id.image_url, req);
     }
 
     res.success('Result retrieved successfully', { result: resultObj });
