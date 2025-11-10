@@ -4,6 +4,33 @@ const Ticket = require('../models/Ticket');
 const { getPaginationParams, getPaginationMeta } = require('../utils/pagination');
 const { getFileUrl } = require('../utils/fileHelper');
 
+// Helper function to calculate competition status based on draw_time
+const calculateCompetitionStatus = (drawTime, storedStatus, ticketsSold, maxTickets) => {
+  if (!drawTime) return storedStatus || 'upcoming';
+  
+  const now = new Date();
+  const drawDate = new Date(drawTime);
+  
+  // If draw time has passed
+  if (drawDate < now) {
+    // If competition was manually set to completed, respect that
+    if (storedStatus === 'completed') {
+      return 'completed';
+    }
+    // If tickets are sold out, mark as completed, otherwise closed
+    if (ticketsSold >= maxTickets) {
+      return 'completed';
+    }
+    return 'closed';
+  }
+  
+  if (storedStatus === 'closed' || storedStatus === 'completed') {
+    return storedStatus;
+  }
+  
+  return 'active';
+};
+
 // Helper function to format live draw value
 const formatLiveDrawValue = (drawTime) => {
   if (!drawTime) return 'TBD';
@@ -52,12 +79,19 @@ const getCompetitions = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    // Convert image_url to full URL for each competition
+    // Convert image_url to full URL and calculate status for each competition
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = competition.toObject();
       if (comp.image_url && !comp.image_url.startsWith('http')) {
         comp.image_url = getFileUrl(comp.image_url, req);
       }
+      // Calculate actual status based on draw_time
+      comp.status = calculateCompetitionStatus(
+        comp.draw_time,
+        comp.status,
+        comp.tickets_sold,
+        comp.max_tickets
+      );
       return comp;
     });
 
@@ -125,6 +159,13 @@ const getRecentCompetitions = async (req, res) => {
       if (comp.image_url && !comp.image_url.startsWith('http')) {
         comp.image_url = getFileUrl(comp.image_url, req);
       }
+      // Calculate actual status based on draw_time
+      comp.status = calculateCompetitionStatus(
+        comp.draw_time,
+        comp.status,
+        comp.tickets_sold,
+        comp.max_tickets
+      );
       // Add is_favorite field (true if competition ID is in favoriteIds array)
       comp.is_favorite = userId ? favoriteIds.includes(comp._id.toString()) : false;
       return comp;
@@ -153,12 +194,19 @@ const searchCompetitions = async (req, res) => {
       .populate('category_id', 'name slug')
       .limit(20);
 
-    // Convert image_url to full URL for each competition
+    // Convert image_url to full URL and calculate status for each competition
     const competitionsWithUrls = competitions.map((competition) => {
       const comp = competition.toObject();
       if (comp.image_url && !comp.image_url.startsWith('http')) {
         comp.image_url = getFileUrl(comp.image_url, req);
       }
+      // Calculate actual status based on draw_time
+      comp.status = calculateCompetitionStatus(
+        comp.draw_time,
+        comp.status,
+        comp.tickets_sold,
+        comp.max_tickets
+      );
       return comp;
     });
 
@@ -185,11 +233,19 @@ const getCompetitionById = async (req, res) => {
       ? Math.round((competition.tickets_sold / competition.max_tickets) * 100)
       : 0;
 
-    // Determine status message based on competition status
+    // Calculate actual status based on draw_time (override stored status if needed)
+    const actualStatus = calculateCompetitionStatus(
+      competition.draw_time,
+      competition.status,
+      competition.tickets_sold,
+      competition.max_tickets
+    );
+
+    // Determine status message based on actual status
     let status_message = '';
     const now = new Date();
     
-    switch (competition.status) {
+    switch (actualStatus) {
       case 'upcoming':
         status_message = 'Competition is upcoming';
         break;
@@ -212,6 +268,7 @@ const getCompetitionById = async (req, res) => {
 
     // Add additional fields to competition object
     const competitionData = competition.toObject();
+    competitionData.status = actualStatus; // Override with calculated status
     competitionData.status_message = status_message;
     competitionData.start_date = competition.createdAt;
     competitionData.end_date = competition.draw_time;
@@ -343,12 +400,19 @@ const getMyFavorites = async (req, res) => {
       .map(id => competitionMap.get(id))
       .filter(Boolean);
 
-    // Convert image_url to full URL for each competition
+    // Convert image_url to full URL and calculate status for each competition
     const competitionsWithUrls = orderedCompetitions.map((competition) => {
       const comp = competition.toObject ? competition.toObject() : competition;
       if (comp.image_url && !comp.image_url.startsWith('http')) {
         comp.image_url = getFileUrl(comp.image_url, req);
       }
+      // Calculate actual status based on draw_time
+      comp.status = calculateCompetitionStatus(
+        comp.draw_time,
+        comp.status,
+        comp.tickets_sold,
+        comp.max_tickets
+      );
       return comp;
     });
 
@@ -430,6 +494,14 @@ const getMyCompetitions = async (req, res) => {
           if (competition.image_url && !competition.image_url.startsWith('http')) {
             competition.image_url = getFileUrl(competition.image_url, req);
           }
+          
+          // Calculate actual status based on draw_time
+          competition.status = calculateCompetitionStatus(
+            competition.draw_time,
+            competition.status,
+            competition.tickets_sold,
+            competition.max_tickets
+          );
           
           return competition;
         }

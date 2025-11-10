@@ -5,12 +5,56 @@ const Joi = require('joi');
 const { getPaginationParams, getPaginationMeta } = require('../../utils/pagination');
 const { getFileUrl } = require('../../utils/fileHelper');
 
+// Helper function to calculate competition status based on draw_time
+const calculateCompetitionStatus = (drawTime, storedStatus, ticketsSold, maxTickets) => {
+  if (!drawTime) return storedStatus || 'upcoming';
+  
+  const now = new Date();
+  const drawDate = new Date(drawTime);
+  
+  // If draw time has passed
+  if (drawDate < now) {
+    // If competition was manually set to completed, respect that
+    if (storedStatus === 'completed') {
+      return 'completed';
+    }
+    // If tickets are sold out, mark as completed, otherwise closed
+    if (ticketsSold >= maxTickets) {
+      return 'completed';
+    }
+    return 'closed';
+  }
+  
+  // If draw time hasn't passed yet (draw is in the future)
+  // If competition was manually set to closed or completed, respect that
+  if (storedStatus === 'closed' || storedStatus === 'completed') {
+    return storedStatus;
+  }
+  
+  // If draw_time is in the future, the competition should be "active"
+  // This means the competition is currently running and accepting tickets
+  return 'active';
+};
+
 const createCompetition = async (req, res) => {
   try {
     const competitionData = { ...req.body };
 
     if (req.file) {
       competitionData.image_url = `/uploads/competitions/${req.file.filename}`;
+    }
+
+
+    if (competitionData.draw_time) {
+      // Only auto-calculate if status is not explicitly set to closed/completed
+      if (!competitionData.status || (competitionData.status !== 'closed' && competitionData.status !== 'completed')) {
+        competitionData.status = calculateCompetitionStatus(
+          competitionData.draw_time,
+          competitionData.status,
+          competitionData.tickets_sold || 0,
+          competitionData.max_tickets || 0
+        );
+      }
     }
 
     const competition = new Competition(competitionData);
@@ -45,6 +89,17 @@ const updateCompetition = async (req, res) => {
       }
 
       updateData.image_url = `/uploads/competitions/${req.file.filename}`;
+    }
+
+    // Recalculate status if draw_time is being updated or status is not explicitly set
+    const drawTime = updateData.draw_time || competition.draw_time;
+    if (!updateData.status && drawTime) {
+      updateData.status = calculateCompetitionStatus(
+        drawTime,
+        updateData.status || competition.status,
+        competition.tickets_sold,
+        competition.max_tickets
+      );
     }
 
     Object.assign(competition, updateData);
@@ -112,6 +167,13 @@ const getCompetitions = async (req, res) => {
       if (comp.image_url && !comp.image_url.startsWith('http')) {
         comp.image_url = getFileUrl(comp.image_url, req);
       }
+      // Calculate actual status based on draw_time (override stored status if needed)
+      comp.status = calculateCompetitionStatus(
+        comp.draw_time,
+        comp.status,
+        comp.tickets_sold,
+        comp.max_tickets
+      );
       return comp;
     });
 

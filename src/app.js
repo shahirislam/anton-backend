@@ -50,6 +50,9 @@ const healthCheck = async (req, res) => {
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
 
+// Stream viewing route (root level for public access)
+app.use('/stream', require('./routes/api/v1/public/streams'));
+
 app.use('/api/v1', require('./routes/api/v1'));
 
 // 404 handler - only for API routes, not for static files

@@ -9,6 +9,7 @@ router.use('/terms', require('./terms'));
 router.use('/help-support', require('./helpSupport'));
 router.use('/points', require('./points'));
 router.use('/tickets', require('./tickets'));
+router.use('/streams', require('./streams'));
 
 module.exports = router;
 
