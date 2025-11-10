@@ -15,6 +15,7 @@ Production-ready Express.js + MongoDB backend for TMG Competitions Ltd - Online 
 - ✅ User profile management
 - ✅ Category management
 - ✅ Complete admin APIs
+- ✅ WebRTC live streaming for competitions
 - ✅ Global response trait for consistent API responses
 - ✅ Seed script with test accounts
 
@@ -65,6 +66,14 @@ OTP_EXPIRE_MINUTES=10
 # Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_...  # Your Stripe secret key (test or live)
 STRIPE_WEBHOOK_SECRET=whsec_...  # Webhook signing secret (get from Stripe Dashboard)
+
+# WebRTC Streaming Configuration
+STUN_SERVER_URL=stun:stun.l.google.com:19302  # STUN server for NAT traversal (default: Google's public STUN)
+TURN_SERVER_URL=  # Optional: TURN server URL for complex networks (e.g., turn:turnserver.com:3478)
+TURN_USERNAME=  # Optional: TURN server username
+TURN_CREDENTIAL=  # Optional: TURN server credential
+STREAM_BASE_URL=http://localhost:5000  # Base URL for public stream viewing pages (defaults to APP_URL)
+FRONTEND_URL=http://localhost:3000  # Frontend URL for WebSocket CORS (optional, defaults to *)
 ```
 
 ### 3. Seed Test Accounts
@@ -218,6 +227,10 @@ All responses follow a consistent structure:
 All admin routes require admin authentication.
 
 - **Competitions**: CRUD operations
+- **Streams**: Live streaming management ⭐ **NEW**
+  - `POST /streams/:competitionId/start` - Start WebRTC stream for competition
+  - `POST /streams/:competitionId/stop` - Stop active stream
+  - `GET /streams/:competitionId/status` - Get stream status
 - **Tickets**: List, view by competition, delete
 - **Results**: CRUD operations
 - **Notifications**: Create, list

@@ -31,6 +31,11 @@ const startServer = async () => {
       });
     });
 
+    // Initialize WebSocket/Streaming service
+    const streamingService = require('./services/streamingService');
+    streamingService.initialize(server);
+    logger.info('WebSocket streaming service initialized');
+
     server.on('error', (error) => {
       console.error('Server error:', error);
       logger.error('Server error', { error: error.message, stack: error.stack });

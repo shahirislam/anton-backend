@@ -7,6 +7,7 @@ router.use(authMiddleware);
 router.use(isAdmin);
 
 router.use('/competitions', require('./competitions'));
+router.use('/streams', require('./streams'));
 router.use('/tickets', require('./tickets'));
 router.use('/results', require('./results'));
 router.use('/notifications', require('./notifications'));

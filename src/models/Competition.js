@@ -78,6 +78,14 @@ const competitionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    stream_room_id: {
+      type: String,
+      default: null,
+    },
+    stream_started_at: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

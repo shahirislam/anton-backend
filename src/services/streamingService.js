@@ -1,0 +1,375 @@
+const { Server } = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
+const logger = require('../utils/logger');
+
+class StreamingService {
+  constructor() {
+    this.io = null;
+    this.activeStreams = new Map(); // competitionId -> streamInfo
+    this.rooms = new Map(); // roomId -> { competitionId, adminSocketId, viewers: Set }
+  }
+
+  /**
+   * Initialize Socket.io server
+   * @param {http.Server} server - HTTP server instance
+   */
+  initialize(server) {
+    this.io = new Server(server, {
+      cors: {
+        origin: process.env.FRONTEND_URL || '*',
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+      transports: ['websocket', 'polling'],
+    });
+
+    this.io.on('connection', (socket) => {
+      logger.info('WebSocket client connected', { socketId: socket.id });
+
+      // Handle stream room join
+      socket.on('stream:join', (data) => {
+        this.handleStreamJoin(socket, data);
+      });
+
+      // Handle WebRTC offer from admin
+      socket.on('stream:offer', (data) => {
+        this.handleStreamOffer(socket, data);
+      });
+
+      // Handle WebRTC answer from viewer
+      socket.on('stream:answer', (data) => {
+        this.handleStreamAnswer(socket, data);
+      });
+
+      // Handle ICE candidate
+      socket.on('stream:ice-candidate', (data) => {
+        this.handleIceCandidate(socket, data);
+      });
+
+      // Handle stream stop
+      socket.on('stream:stop', (data) => {
+        this.handleStreamStop(socket, data);
+      });
+
+      // Handle disconnect
+      socket.on('disconnect', () => {
+        this.handleDisconnect(socket);
+      });
+
+      // Handle errors
+      socket.on('error', (error) => {
+        logger.error('Socket error', { socketId: socket.id, error: error.message });
+      });
+    });
+
+    logger.info('Streaming service initialized');
+  }
+
+  /**
+   * Handle stream room join
+   */
+  handleStreamJoin(socket, data) {
+    const { roomId, role, competitionId } = data;
+
+    if (!roomId) {
+      socket.emit('stream:error', { message: 'Room ID is required' });
+      return;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      socket.emit('stream:error', { message: 'Stream room not found' });
+      return;
+    }
+
+    socket.join(roomId);
+
+    if (role === 'admin') {
+      room.adminSocketId = socket.id;
+      logger.info('Admin joined stream room', { roomId, competitionId, socketId: socket.id });
+      socket.emit('stream:joined', { roomId, role: 'admin' });
+    } else if (role === 'viewer') {
+      if (!room.viewers) {
+        room.viewers = new Set();
+      }
+      room.viewers.add(socket.id);
+      logger.info('Viewer joined stream room', { roomId, competitionId, socketId: socket.id });
+      socket.emit('stream:joined', { roomId, role: 'viewer' });
+
+      // Notify admin that a viewer joined
+      if (room.adminSocketId) {
+        this.io.to(room.adminSocketId).emit('stream:viewer-join', {
+          viewerId: socket.id,
+          viewerCount: room.viewers.size,
+        });
+      }
+    }
+  }
+
+  /**
+   * Handle WebRTC offer from admin
+   */
+  handleStreamOffer(socket, data) {
+    const { roomId, offer } = data;
+
+    if (!roomId || !offer) {
+      socket.emit('stream:error', { message: 'Room ID and offer are required' });
+      return;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room || room.adminSocketId !== socket.id) {
+      socket.emit('stream:error', { message: 'Unauthorized or room not found' });
+      return;
+    }
+
+    // Broadcast offer to all viewers in the room
+    socket.to(roomId).emit('stream:offer', { offer, from: socket.id });
+
+    logger.info('Stream offer broadcasted', { roomId, from: socket.id });
+  }
+
+  /**
+   * Handle WebRTC answer from viewer
+   */
+  handleStreamAnswer(socket, data) {
+    const { roomId, answer } = data;
+
+    if (!roomId || !answer) {
+      socket.emit('stream:error', { message: 'Room ID and answer are required' });
+      return;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      socket.emit('stream:error', { message: 'Stream room not found' });
+      return;
+    }
+
+    // Send answer to admin
+    if (room.adminSocketId) {
+      this.io.to(room.adminSocketId).emit('stream:answer', {
+        answer,
+        from: socket.id,
+      });
+      logger.info('Stream answer forwarded to admin', { roomId, from: socket.id });
+    }
+  }
+
+  /**
+   * Handle ICE candidate exchange
+   */
+  handleIceCandidate(socket, data) {
+    const { roomId, candidate, target } = data;
+
+    if (!roomId || !candidate) {
+      socket.emit('stream:error', { message: 'Room ID and candidate are required' });
+      return;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      socket.emit('stream:error', { message: 'Stream room not found' });
+      return;
+    }
+
+    // If target is specified, send to specific socket, otherwise broadcast
+    if (target) {
+      this.io.to(target).emit('stream:ice-candidate', {
+        candidate,
+        from: socket.id,
+      });
+    } else {
+      // Broadcast to all other clients in the room
+      socket.to(roomId).emit('stream:ice-candidate', {
+        candidate,
+        from: socket.id,
+      });
+    }
+
+    logger.debug('ICE candidate forwarded', { roomId, from: socket.id, target });
+  }
+
+  /**
+   * Handle stream stop
+   */
+  handleStreamStop(socket, data) {
+    const { roomId } = data;
+
+    if (!roomId) {
+      socket.emit('stream:error', { message: 'Room ID is required' });
+      return;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room || room.adminSocketId !== socket.id) {
+      socket.emit('stream:error', { message: 'Unauthorized or room not found' });
+      return;
+    }
+
+    // Notify all viewers
+    this.io.to(roomId).emit('stream:stopped', { message: 'Stream has been stopped' });
+
+    // Clean up
+    this.stopStream(room.competitionId);
+    logger.info('Stream stopped', { roomId, competitionId: room.competitionId });
+  }
+
+  /**
+   * Handle client disconnect
+   */
+  handleDisconnect(socket) {
+    // Find and clean up rooms where this socket was admin or viewer
+    for (const [roomId, room] of this.rooms.entries()) {
+      if (room.adminSocketId === socket.id) {
+        // Admin disconnected, stop the stream
+        this.io.to(roomId).emit('stream:stopped', { message: 'Stream ended' });
+        this.stopStream(room.competitionId);
+        logger.info('Admin disconnected, stream stopped', { roomId, competitionId: room.competitionId });
+      } else if (room.viewers && room.viewers.has(socket.id)) {
+        // Viewer disconnected
+        room.viewers.delete(socket.id);
+        if (room.adminSocketId) {
+          this.io.to(room.adminSocketId).emit('stream:viewer-leave', {
+            viewerId: socket.id,
+            viewerCount: room.viewers.size,
+          });
+        }
+        logger.debug('Viewer disconnected', { roomId, socketId: socket.id });
+      }
+    }
+
+    logger.info('WebSocket client disconnected', { socketId: socket.id });
+  }
+
+  /**
+   * Create a new stream room for a competition
+   * @param {string} competitionId - Competition ID
+   * @returns {Object} Stream information
+   */
+  createStream(competitionId) {
+    // Check if stream already exists
+    if (this.activeStreams.has(competitionId)) {
+      const existing = this.activeStreams.get(competitionId);
+      return {
+        roomId: existing.roomId,
+        streamUrl: existing.streamUrl,
+        websocketUrl: existing.websocketUrl,
+        alreadyExists: true,
+      };
+    }
+
+    const roomId = uuidv4();
+    const streamBaseUrl = process.env.STREAM_BASE_URL || process.env.APP_URL || 'http://localhost:5000';
+    const streamUrl = `${streamBaseUrl}/stream/${competitionId}`;
+    const websocketUrl = `${streamBaseUrl.replace('http', 'ws')}/socket.io`;
+
+    const streamInfo = {
+      roomId,
+      competitionId,
+      streamUrl,
+      websocketUrl,
+      createdAt: new Date(),
+    };
+
+    this.activeStreams.set(competitionId, streamInfo);
+    this.rooms.set(roomId, {
+      competitionId,
+      adminSocketId: null,
+      viewers: new Set(),
+    });
+
+    logger.info('Stream room created', { roomId, competitionId, streamUrl });
+
+    return {
+      roomId,
+      streamUrl,
+      websocketUrl,
+      alreadyExists: false,
+    };
+  }
+
+  /**
+   * Stop a stream for a competition
+   * @param {string} competitionId - Competition ID
+   */
+  stopStream(competitionId) {
+    const streamInfo = this.activeStreams.get(competitionId);
+    if (!streamInfo) {
+      return false;
+    }
+
+    const room = this.rooms.get(streamInfo.roomId);
+    if (room) {
+      // Notify all clients in the room
+      this.io.to(streamInfo.roomId).emit('stream:stopped', { message: 'Stream has been stopped' });
+      this.rooms.delete(streamInfo.roomId);
+    }
+
+    this.activeStreams.delete(competitionId);
+    logger.info('Stream stopped and cleaned up', { competitionId, roomId: streamInfo.roomId });
+
+    return true;
+  }
+
+  /**
+   * Get stream status for a competition
+   * @param {string} competitionId - Competition ID
+   * @returns {Object|null} Stream information or null
+   */
+  getStreamStatus(competitionId) {
+    const streamInfo = this.activeStreams.get(competitionId);
+    if (!streamInfo) {
+      return null;
+    }
+
+    const room = this.rooms.get(streamInfo.roomId);
+    const viewerCount = room && room.viewers ? room.viewers.size : 0;
+    const isActive = room && room.adminSocketId !== null;
+
+    return {
+      ...streamInfo,
+      isActive,
+      viewerCount,
+    };
+  }
+
+  /**
+   * Get WebRTC configuration (STUN/TURN servers)
+   * @returns {Object} RTCConfiguration
+   */
+  getRTCConfiguration() {
+    const config = {
+      iceServers: [],
+    };
+
+    // Add STUN server
+    const stunServer = process.env.STUN_SERVER_URL || 'stun:stun.l.google.com:19302';
+    config.iceServers.push({ urls: stunServer });
+
+    // Add TURN server if configured
+    if (process.env.TURN_SERVER_URL) {
+      const turnConfig = {
+        urls: process.env.TURN_SERVER_URL,
+      };
+
+      if (process.env.TURN_USERNAME) {
+        turnConfig.username = process.env.TURN_USERNAME;
+      }
+
+      if (process.env.TURN_CREDENTIAL) {
+        turnConfig.credential = process.env.TURN_CREDENTIAL;
+      }
+
+      config.iceServers.push(turnConfig);
+    }
+
+    return config;
+  }
+}
+
+// Export singleton instance
+const streamingService = new StreamingService();
+
+module.exports = streamingService;
+
