@@ -1,6 +1,7 @@
 const Competition = require('../models/Competition');
 const streamingService = require('../services/streamingService');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
 
 /**
  * Get stream information for viewing (HTML page)
@@ -9,6 +10,21 @@ const logger = require('../utils/logger');
 const getStreamInfo = async (req, res) => {
   try {
     const { competitionId } = req.params;
+
+    // Generate nonce for CSP (more secure than unsafe-inline)
+    const nonce = crypto.randomBytes(16).toString('base64');
+
+    // Set Content Security Policy headers for stream viewer
+    // This allows Socket.io CDN, inline scripts (via nonce), WebSocket connections, and media streams
+    const cspHeader = [
+      "script-src 'self' https://cdn.socket.io 'nonce-" + nonce + "'",
+      "connect-src 'self' ws://* wss://* http://* https://*",
+      "media-src 'self' blob:",
+      "style-src 'self' 'unsafe-inline'",
+      "default-src 'self'"
+    ].join('; ');
+
+    res.setHeader('Content-Security-Policy', cspHeader);
 
     // Validate competition exists
     const competition = await Competition.findById(competitionId);
@@ -148,7 +164,7 @@ const getStreamInfo = async (req, res) => {
         <div id="error" class="error-message" style="display: none;"></div>
     </div>
 
-    <script>
+    <script nonce="${nonce}">
         const competitionId = '${competitionId}';
         const roomId = '${streamStatus.roomId}';
         const websocketUrl = '${websocketUrl}';

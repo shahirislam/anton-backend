@@ -11,7 +11,20 @@ const app = express();
 // Trust proxy - important for getting correct protocol/host when behind reverse proxy (Render, Heroku, etc.)
 app.set('trust proxy', true);
 
-app.use(helmet());
+// Configure helmet with CSP that can be overridden for stream routes
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'"],
+      mediaSrc: ["'self'", "blob:"],
+    },
+    // Allow stream route to override CSP
+    reportOnly: false,
+  },
+}));
 app.use(cors());
 
 // Stripe webhook needs raw body for signature verification
