@@ -141,10 +141,12 @@ class MediaServerService {
    * @returns {string} HLS manifest URL
    */
   getHLSUrl(competitionId) {
-    const baseUrl = process.env.MEDIA_SERVER_URL || 
-                   process.env.APP_URL?.replace(/\/$/, '') || 
-                   'http://localhost:8000';
-    return `${baseUrl}/live/${competitionId}/index.m3u8`;
+    // Use main server URL instead of separate media server port
+    // HLS files are served through Express /live route
+    const baseUrl = process.env.APP_URL || 
+                   process.env.BASE_URL || 
+                   'http://localhost:5000';
+    return `${baseUrl.replace(/\/$/, '')}/live/${competitionId}/index.m3u8`;
   }
 
   /**

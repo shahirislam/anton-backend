@@ -38,6 +38,29 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Use absolute path to ensure it works correctly
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
+// Serve HLS files from media directory (Node Media Server output)
+// Node Media Server writes to: media/live/{competitionId}/index.m3u8
+// This route serves them from: /live/{competitionId}/index.m3u8
+const mediaPath = path.join(__dirname, '../media');
+app.use('/live', express.static(mediaPath, {
+  setHeaders: (res, filePath) => {
+    // Set proper content types for HLS files
+    if (filePath.endsWith('.m3u8')) {
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      res.setHeader('Cache-Control', 'no-cache');
+      // CORS headers for mobile access
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    } else if (filePath.endsWith('.ts')) {
+      res.setHeader('Content-Type', 'video/mp2t');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      // CORS headers for mobile access
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    }
+  }
+}));
+
 app.use(responseTrait);
 
 const healthCheck = async (req, res) => {
