@@ -34,3 +34,8 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Media files (HLS segments)
+media/
+*.m3u8
+*.ts

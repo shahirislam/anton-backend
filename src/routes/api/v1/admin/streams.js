@@ -12,5 +12,8 @@ router.post('/:competitionId/stop', validateId('competitionId'), adminStreamCont
 // Get stream status for a competition
 router.get('/:competitionId/status', validateId('competitionId'), adminStreamController.getStreamStatus);
 
+// Set HLS stream URL for a competition
+router.patch('/:competitionId/hls-url', validateId('competitionId'), adminStreamController.setHLSStreamUrl);
+
 module.exports = router;
 

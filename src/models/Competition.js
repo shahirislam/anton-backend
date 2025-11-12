@@ -78,6 +78,17 @@ const competitionSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    hls_stream_url: {
+      type: String,
+      default: null,
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow null
+          return v.endsWith('.m3u8') || v.includes('m3u8') || v.includes('hls');
+        },
+        message: 'HLS stream URL should point to an .m3u8 manifest file'
+      }
+    },
     stream_room_id: {
       type: String,
       default: null,

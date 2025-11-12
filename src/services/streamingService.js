@@ -239,6 +239,7 @@ class StreamingService {
         {
           $set: {
             live_draw_watching_url: null,
+            hls_stream_url: null,
             stream_room_id: null,
             stream_started_at: null,
           },
@@ -318,6 +319,7 @@ class StreamingService {
             {
               $set: {
                 live_draw_watching_url: null,
+                hls_stream_url: null,
                 stream_room_id: null,
                 stream_started_at: null,
               },

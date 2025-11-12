@@ -448,6 +448,7 @@ const getStreamInfoJSON = async (req, res) => {
         rtcConfig,
         isActive: streamStatus.isActive,
         viewerCount: streamStatus.viewerCount || 0,
+        hls_url: competition.hls_stream_url || null, // Include HLS URL for mobile
       },
     });
   } catch (error) {
@@ -460,8 +461,54 @@ const getStreamInfoJSON = async (req, res) => {
   }
 };
 
+/**
+ * Get HLS stream URL for mobile players
+ * GET /api/v1/streams/:competitionId/hls
+ */
+const getHLSStreamUrl = async (req, res) => {
+  try {
+    const { competitionId } = req.params;
+
+    // Validate competition exists
+    const competition = await Competition.findById(competitionId);
+    if (!competition) {
+      return res.error('Competition not found', 404);
+    }
+
+    // Check if stream is active
+    const streamStatus = streamingService.getStreamStatus(competitionId);
+    const isActive = streamStatus && streamStatus.isActive;
+
+    // Check if HLS URL is available
+    if (!competition.hls_stream_url) {
+      return res.error('HLS stream URL is not available for this competition', 404);
+    }
+
+    // Set CORS headers for mobile access
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    res.success('HLS stream URL retrieved successfully', {
+      hls_url: competition.hls_stream_url,
+      competition_id: competition._id,
+      competition_title: competition.title,
+      is_active: isActive,
+      stream_type: 'hls',
+    });
+  } catch (error) {
+    logger.error('Failed to get HLS stream URL', {
+      error: error.message,
+      stack: error.stack,
+      competitionId: req.params.competitionId,
+    });
+    res.error(error.message || 'Failed to get HLS stream URL', 500);
+  }
+};
+
 module.exports = {
   getStreamInfo,
   getStreamInfoJSON,
+  getHLSStreamUrl,
 };
 

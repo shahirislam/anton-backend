@@ -41,6 +41,15 @@ const startServer = async () => {
     pushNotificationService.initialize();
     logger.info('Push notification service initialized');
 
+    // Initialize Media Server for HLS streaming
+    const mediaServerService = require('./services/mediaServerService');
+    mediaServerService.initialize();
+    if (mediaServerService.isInitialized()) {
+      logger.info('Media Server initialized - HLS streaming enabled');
+    } else {
+      logger.warn('Media Server not initialized - HLS streaming disabled');
+    }
+
     server.on('error', (error) => {
       console.error('Server error:', error);
       logger.error('Server error', { error: error.message, stack: error.stack });

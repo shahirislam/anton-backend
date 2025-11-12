@@ -1,6 +1,7 @@
 const Competition = require('../../models/Competition');
 const streamingService = require('../../services/streamingService');
 const notificationService = require('../../services/notificationService');
+const mediaServerService = require('../../services/mediaServerService');
 const logger = require('../../utils/logger');
 const { getFileUrl } = require('../../utils/fileHelper');
 
@@ -46,6 +47,18 @@ const startStream = async (req, res) => {
       competition.live_draw_watching_url = streamInfo.streamUrl;
       competition.stream_room_id = streamInfo.roomId;
       competition.stream_started_at = new Date();
+      
+      // Automatically generate HLS URL if media server is available
+      if (mediaServerService.isInitialized()) {
+        const hlsUrl = mediaServerService.getHLSUrl(competitionId);
+        competition.hls_stream_url = hlsUrl;
+        logger.info('HLS URL generated automatically', {
+          competitionId,
+          hlsUrl,
+          rtmpUrl: mediaServerService.getRTMPUrl(competitionId),
+        });
+      }
+      
       await competition.save();
 
       // Convert image_url to full URL if needed
@@ -87,10 +100,15 @@ const startStream = async (req, res) => {
         streamUrl: streamInfo.streamUrl,
         websocketUrl: streamInfo.websocketUrl,
         rtcConfig,
+        hls_url: competition.hls_stream_url || null, // Include HLS URL
+        rtmp_url: mediaServerService.isInitialized() 
+          ? mediaServerService.getRTMPUrl(competitionId) 
+          : null, // Include RTMP URL for streaming
       },
       competition: {
         ...competition.toObject(),
         live_draw_watching_url: streamInfo.streamUrl,
+        hls_stream_url: competition.hls_stream_url || null, // Include HLS URL
       },
     });
   } catch (error) {
@@ -128,6 +146,7 @@ const stopStream = async (req, res) => {
     competition.stream_room_id = null;
     competition.stream_started_at = null;
     competition.live_draw_watching_url = null;
+    competition.hls_stream_url = null; // Clear HLS URL when stream stops
     await competition.save();
 
     logger.info('Stream stopped for competition', { competitionId });
@@ -198,9 +217,57 @@ const getStreamStatus = async (req, res) => {
   }
 };
 
+/**
+ * Set HLS stream URL for a competition
+ * PATCH /api/v1/admin/streams/:competitionId/hls-url
+ */
+const setHLSStreamUrl = async (req, res) => {
+  try {
+    const { competitionId } = req.params;
+    const { hls_url } = req.body;
+
+    // Validate competition exists
+    const competition = await Competition.findById(competitionId);
+    if (!competition) {
+      return res.error('Competition not found', 404);
+    }
+
+    // Validate HLS URL format
+    if (hls_url && !hls_url.match(/\.m3u8/i) && !hls_url.includes('hls')) {
+      return res.error('Invalid HLS URL. Must point to an .m3u8 manifest file', 400);
+    }
+
+    // Update HLS URL
+    competition.hls_stream_url = hls_url || null;
+    await competition.save();
+
+    logger.info('HLS stream URL updated', {
+      competitionId,
+      hls_url: hls_url || 'removed',
+    });
+
+    res.success('HLS stream URL updated successfully', {
+      competition: {
+        _id: competition._id,
+        title: competition.title,
+        hls_stream_url: competition.hls_stream_url,
+        live_draw_watching_url: competition.live_draw_watching_url,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to set HLS stream URL', {
+      error: error.message,
+      stack: error.stack,
+      competitionId: req.params.competitionId,
+    });
+    res.error(error.message || 'Failed to set HLS stream URL', 500);
+  }
+};
+
 module.exports = {
   startStream,
   stopStream,
   getStreamStatus,
+  setHLSStreamUrl,
 };
 
