@@ -209,24 +209,45 @@ const getStreamInfo = async (req, res) => {
 
             socket.on('stream:joined', (data) => {
                 if (data.role === 'viewer') {
-                    console.log('Joined as viewer');
+                    console.log('✅ Joined as viewer, initializing peer connection...');
                     initializePeerConnection();
+                    
+                    // Request offer if not received within 2 seconds
+                    setTimeout(() => {
+                        if (peerConnection && peerConnection.signalingState === 'stable') {
+                            console.log('📤 Requesting offer from admin...');
+                            socket.emit('stream:request-offer', {
+                                roomId: roomId
+                            });
+                        }
+                    }, 2000);
                 }
             });
 
             socket.on('stream:offer', async (data) => {
-                if (data.from !== socket.id && peerConnection) {
+                console.log('📥 Received offer from admin');
+                
+                if (!peerConnection) {
+                    console.error('❌ Peer connection not initialized!');
+                    return;
+                }
+                
+                if (data.from !== socket.id) {
                     try {
                         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        console.log('✅ Set remote description');
+                        
                         const answer = await peerConnection.createAnswer();
                         await peerConnection.setLocalDescription(answer);
+                        console.log('✅ Created answer');
                         
                         socket.emit('stream:answer', {
                             roomId: roomId,
                             answer: peerConnection.localDescription
                         });
+                        console.log('✅ Sent answer to admin');
                     } catch (error) {
-                        console.error('Error handling offer:', error);
+                        console.error('❌ Error handling offer:', error);
                         showError('Failed to connect to stream');
                     }
                 }
@@ -236,8 +257,32 @@ const getStreamInfo = async (req, res) => {
                 if (data.from !== socket.id && data.candidate && peerConnection) {
                     try {
                         await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                        console.log('✅ Added ICE candidate');
                     } catch (error) {
-                        console.error('Error adding ICE candidate:', error);
+                        console.error('❌ Error adding ICE candidate:', error);
+                    }
+                }
+            });
+            
+            socket.on('stream:request-offer-response', async (data) => {
+                if (data.offer && peerConnection) {
+                    console.log('📥 Received offer in response to request');
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        console.log('✅ Set remote description');
+                        
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        console.log('✅ Created answer');
+                        
+                        socket.emit('stream:answer', {
+                            roomId: roomId,
+                            answer: peerConnection.localDescription
+                        });
+                        console.log('✅ Sent answer to admin');
+                    } catch (error) {
+                        console.error('❌ Error handling offer:', error);
+                        showError('Failed to connect to stream');
                     }
                 }
             });
@@ -268,18 +313,28 @@ const getStreamInfo = async (req, res) => {
         }
 
         function initializePeerConnection() {
+            console.log('🔧 Initializing peer connection...');
             peerConnection = new RTCPeerConnection(rtcConfig);
+            
+            // Store globally for debugging
+            window.peerConnection = peerConnection;
 
             peerConnection.ontrack = (event) => {
-                console.log('Received remote stream');
+                console.log('✅ Received video track!');
                 const stream = event.streams[0];
-                videoElement.srcObject = stream;
-                loadingElement.style.display = 'none';
-                updateStatus('Live', 'live');
+                if (videoElement) {
+                    videoElement.srcObject = stream;
+                    videoElement.play().catch(err => {
+                        console.error('Error playing video:', err);
+                    });
+                    loadingElement.style.display = 'none';
+                    updateStatus('Live', 'live');
+                }
             };
 
             peerConnection.onicecandidate = (event) => {
                 if (event.candidate && socket) {
+                    console.log('📤 Sending ICE candidate');
                     socket.emit('stream:ice-candidate', {
                         roomId: roomId,
                         candidate: event.candidate
@@ -287,14 +342,30 @@ const getStreamInfo = async (req, res) => {
                 }
             };
 
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log('ICE connection state:', peerConnection.iceConnectionState);
+                if (peerConnection.iceConnectionState === 'connected' || 
+                    peerConnection.iceConnectionState === 'completed') {
+                    console.log('✅ ICE connection established');
+                } else if (peerConnection.iceConnectionState === 'failed') {
+                    console.error('❌ ICE connection failed');
+                }
+            };
+
             peerConnection.onconnectionstatechange = () => {
                 console.log('Connection state:', peerConnection.connectionState);
                 if (peerConnection.connectionState === 'connected') {
+                    console.log('✅ WebRTC connected!');
                     updateStatus('Live', 'live');
                 } else if (peerConnection.connectionState === 'failed' || 
                           peerConnection.connectionState === 'disconnected') {
+                    console.error('❌ WebRTC connection failed');
                     showError('Connection lost. Please refresh the page.');
                 }
+            };
+            
+            peerConnection.onsignalingstatechange = () => {
+                console.log('Signaling state:', peerConnection.signalingState);
             };
         }
 

@@ -16,7 +16,7 @@ const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findByIdAndUpdate(id, req.body, {
+    const category = await Category.findOneAndUpdate({ _id: id }, req.body, {
       new: true,
       runValidators: true,
     });
@@ -35,7 +35,7 @@ const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findByIdAndDelete(id);
+    const category = await Category.findOneAndDelete({ _id: id });
 
     if (!category) {
       return res.error('Category not found', 404);
