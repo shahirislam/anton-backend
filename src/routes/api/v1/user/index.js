@@ -9,6 +9,7 @@ router.use('/tickets', require('./tickets'));
 router.use('/cart', require('./cart'));
 router.use('/points', require('./points'));
 router.use('/notifications', require('./notifications'));
+router.use('/device-token', require('./deviceToken'));
 
 module.exports = router;
 

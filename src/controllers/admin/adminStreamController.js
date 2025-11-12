@@ -1,5 +1,6 @@
 const Competition = require('../../models/Competition');
 const streamingService = require('../../services/streamingService');
+const notificationService = require('../../services/notificationService');
 const logger = require('../../utils/logger');
 const { getFileUrl } = require('../../utils/fileHelper');
 
@@ -64,6 +65,21 @@ const startStream = async (req, res) => {
       roomId: streamInfo.roomId,
       streamUrl: streamInfo.streamUrl,
     });
+
+    // Send notifications to users about live stream starting (async, don't wait)
+    notificationService.notifyLiveStreamStarted(competition, streamInfo.streamUrl)
+      .then((result) => {
+        logger.info('Live stream notifications sent', {
+          competitionId,
+          result,
+        });
+      })
+      .catch((error) => {
+        logger.error('Failed to send live stream notifications', {
+          competitionId,
+          error: error.message,
+        });
+      });
 
     res.success('Stream started successfully', {
       stream: {

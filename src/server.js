@@ -36,6 +36,11 @@ const startServer = async () => {
     streamingService.initialize(server);
     logger.info('WebSocket streaming service initialized');
 
+    // Initialize Push Notification service
+    const pushNotificationService = require('./services/pushNotificationService');
+    pushNotificationService.initialize();
+    logger.info('Push notification service initialized');
+
     server.on('error', (error) => {
       console.error('Server error:', error);
       logger.error('Server error', { error: error.message, stack: error.stack });
