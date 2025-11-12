@@ -111,10 +111,7 @@ const stopStream = async (req, res) => {
     // Clear stream tracking fields
     competition.stream_room_id = null;
     competition.stream_started_at = null;
-    // Optionally clear the live_draw_watching_url (or keep it for reference)
-    // For now, we'll keep it so users can see the stream ended
-    // If you want to clear it, uncomment below:
-    // competition.live_draw_watching_url = null;
+    competition.live_draw_watching_url = null;
     await competition.save();
 
     logger.info('Stream stopped for competition', { competitionId });

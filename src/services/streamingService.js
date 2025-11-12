@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const Competition = require('../models/Competition');
 
 class StreamingService {
   constructor() {
@@ -209,7 +210,7 @@ class StreamingService {
   /**
    * Handle stream stop
    */
-  handleStreamStop(socket, data) {
+  async handleStreamStop(socket, data) {
     const { roomId } = data;
 
     if (!roomId) {
@@ -223,12 +224,36 @@ class StreamingService {
       return;
     }
 
+    const competitionId = room.competitionId;
+
     // Notify all viewers
     this.io.to(roomId).emit('stream:stopped', { message: 'Stream has been stopped' });
 
-    // Clean up
-    this.stopStream(room.competitionId);
-    logger.info('Stream stopped', { roomId, competitionId: room.competitionId });
+    // Clean up in-memory state
+    this.stopStream(competitionId);
+
+    // Update database to clear stream fields
+    try {
+      await Competition.findByIdAndUpdate(
+        competitionId,
+        {
+          $set: {
+            live_draw_watching_url: null,
+            stream_room_id: null,
+            stream_started_at: null,
+          },
+        },
+        { new: true }
+      );
+      logger.info('Database updated after stream stop', { roomId, competitionId });
+    } catch (error) {
+      logger.error('Failed to update database after stream stop', {
+        error: error.message,
+        competitionId,
+      });
+    }
+
+    logger.info('Stream stopped', { roomId, competitionId });
   }
 
   /**
@@ -277,14 +302,37 @@ class StreamingService {
   /**
    * Handle client disconnect
    */
-  handleDisconnect(socket) {
+  async handleDisconnect(socket) {
     // Find and clean up rooms where this socket was admin or viewer
     for (const [roomId, room] of this.rooms.entries()) {
       if (room.adminSocketId === socket.id) {
         // Admin disconnected, stop the stream
+        const competitionId = room.competitionId;
         this.io.to(roomId).emit('stream:stopped', { message: 'Stream ended' });
-        this.stopStream(room.competitionId);
-        logger.info('Admin disconnected, stream stopped', { roomId, competitionId: room.competitionId });
+        this.stopStream(competitionId);
+        
+        // Update database to clear stream fields
+        try {
+          await Competition.findByIdAndUpdate(
+            competitionId,
+            {
+              $set: {
+                live_draw_watching_url: null,
+                stream_room_id: null,
+                stream_started_at: null,
+              },
+            },
+            { new: true }
+          );
+          logger.info('Database updated after admin disconnect', { roomId, competitionId });
+        } catch (error) {
+          logger.error('Failed to update database after admin disconnect', {
+            error: error.message,
+            competitionId,
+          });
+        }
+        
+        logger.info('Admin disconnected, stream stopped', { roomId, competitionId });
       } else if (room.viewers && room.viewers.has(socket.id)) {
         // Viewer disconnected
         room.viewers.delete(socket.id);
