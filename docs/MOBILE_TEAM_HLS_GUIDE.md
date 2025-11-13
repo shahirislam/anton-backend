@@ -65,24 +65,31 @@ class Competition {
 }
 ```
 
-### Step 2: Implement Video Player
+### Step 2: Implement Video Player with Fallback
+
+**Important:** Use HLS if available, but **always fallback to WebView** with WebRTC page. This ensures mobile always works!
 
 ```dart
 import 'package:video_player/video_player.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class LiveStreamPlayer extends StatefulWidget {
   final Competition competition;
   
   @override
   Widget build(BuildContext context) {
-    // Priority 1: Use HLS if available (native player)
+    // Priority 1: Use HLS if available (native player - better performance)
     if (competition.hlsStreamUrl != null) {
       return HLSVideoPlayer(url: competition.hlsStreamUrl!);
     }
     
-    // Priority 2: Fallback to WebRTC HTML page (WebView)
+    // Priority 2: Fallback to WebView with WebRTC HTML page (always works!)
+    // This is the current WebRTC stream - works perfectly in WebView
     if (competition.liveDrawWatchingUrl != null) {
-      return WebViewPlayer(url: competition.liveDrawWatchingUrl!);
+      return WebView(
+        initialUrl: competition.liveDrawWatchingUrl!,
+        javascriptMode: JavascriptMode.unrestricted,
+      );
     }
     
     return Text('Stream not available');
@@ -185,21 +192,32 @@ Widget buildStreamWidget(Competition competition) {
 }
 ```
 
-## 📦 Required Package
+## 📦 Required Packages
 
 Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  video_player: ^2.8.0
+  video_player: ^2.8.0  # For HLS playback
+  webview_flutter: ^4.4.0  # For WebRTC fallback (WebView)
 ```
 
 ## 🎯 Key Points
 
 1. **Always Check HLS First**: Use `hls_stream_url` if available (better performance)
-2. **Fallback to WebRTC**: Use `live_draw_watching_url` in WebView if HLS not available
+2. **Fallback to WebView**: Use `live_draw_watching_url` in WebView if HLS not available
+   - **This always works!** The WebRTC HTML page works perfectly in WebView
+   - No need to wait for RTMP/HLS setup
 3. **Check Stream Status**: Verify `stream_started_at` is not null before playing
 4. **Error Handling**: Handle cases where stream URL is null or invalid
+
+## ⚠️ Important: You Don't Need RTMP!
+
+**The mobile app can work RIGHT NOW** using WebView with the WebRTC page!
+
+- HLS URL is a bonus (better performance, native controls)
+- WebView with WebRTC page always works (current system)
+- Both URLs are in the API response automatically
 
 ## 🧪 Testing
 

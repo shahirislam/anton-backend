@@ -109,6 +109,9 @@ class StreamingService {
           viewerCount: room.viewers.size,
         });
       }
+
+      // Don't send stored offer immediately - let the viewer request it after peer connection is ready
+      // The viewer will request the offer via 'stream:request-offer' after initializing peer connection
     }
   }
 
@@ -118,8 +121,8 @@ class StreamingService {
   handleStreamOffer(socket, data) {
     const { roomId, offer, targetViewerId } = data;
 
-    if (!roomId || !offer || !targetViewerId) {
-      socket.emit('stream:error', { message: 'Room ID, offer, and targetViewerId are required' });
+    if (!roomId || !offer) {
+      socket.emit('stream:error', { message: 'Room ID and offer are required' });
       return;
     }
 
@@ -129,13 +132,23 @@ class StreamingService {
       return;
     }
 
-    // Store the offer for late-joining viewers if needed, though targeted sending is preferred
+    // Store the offer for late-joining viewers
     room.lastOffer = offer;
 
-    // Send offer to the specific target viewer
-    this.io.to(targetViewerId).emit('stream:offer', { offer, from: socket.id, roomId });
-
-    logger.info('Stream offer sent to specific viewer', { roomId, from: socket.id, targetViewerId });
+    if (targetViewerId) {
+      // Send offer to specific viewer
+      this.io.to(targetViewerId).emit('stream:offer', { offer, from: socket.id, roomId });
+      logger.info('Stream offer sent to specific viewer', { roomId, from: socket.id, targetViewerId });
+    } else if (room.viewers && room.viewers.size > 0) {
+      // Broadcast offer to all current viewers in the room (exclude admin)
+      room.viewers.forEach(viewerId => {
+        this.io.to(viewerId).emit('stream:offer', { offer, from: socket.id, roomId });
+      });
+      logger.info('Stream offer broadcasted to all viewers', { roomId, from: socket.id, viewerCount: room.viewers.size });
+    } else {
+      // No viewers yet, offer is stored and will be sent when viewers join
+      logger.info('Stream offer stored, no viewers yet', { roomId, from: socket.id });
+    }
   }
 
   /**
@@ -185,16 +198,24 @@ class StreamingService {
     const isAdmin = room.adminSocketId === socket.id;
 
     if (isAdmin) {
-      // Admin is sending a candidate to a specific viewer
-      if (!target) {
-        socket.emit('stream:error', { message: 'Target viewer ID is required for admin candidates' });
-        return;
+      // Admin is sending a candidate
+      if (target) {
+        // Send to specific viewer
+        this.io.to(target).emit('stream:ice-candidate', {
+          candidate,
+          from: socket.id,
+        });
+        logger.debug('ICE candidate forwarded from admin to specific viewer', { roomId, from: socket.id, target });
+      } else if (room.viewers && room.viewers.size > 0) {
+        // Broadcast to all current viewers (exclude admin)
+        room.viewers.forEach(viewerId => {
+          this.io.to(viewerId).emit('stream:ice-candidate', {
+            candidate,
+            from: socket.id,
+          });
+        });
+        logger.debug('ICE candidate broadcasted from admin to all viewers', { roomId, from: socket.id, viewerCount: room.viewers.size });
       }
-      this.io.to(target).emit('stream:ice-candidate', {
-        candidate,
-        from: socket.id,
-      });
-      logger.debug('ICE candidate forwarded from admin to viewer', { roomId, from: socket.id, target });
     } else {
       // Viewer is sending a candidate to the admin
       if (room.adminSocketId) {
