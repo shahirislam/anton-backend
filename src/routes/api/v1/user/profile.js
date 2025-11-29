@@ -28,6 +28,7 @@ router.get('/', authMiddleware, profileController.getProfile);
 router.put('/', authMiddleware, uploadProfileImage, validate(updateProfileValidation), profileController.updateProfile);
 router.get('/points', authMiddleware, profileController.getProfilePoints);
 router.get('/transactions', authMiddleware, profileController.getProfileTransactions);
+router.get('/purchase-history', authMiddleware, profileController.getPurchaseHistory);
 
 module.exports = router;
 
