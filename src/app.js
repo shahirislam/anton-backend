@@ -45,6 +45,7 @@ app.use(responseTrait);
 // NOTE: This route must be AFTER responseTrait middleware for validateId to work
 const hlsController = require('./controllers/hlsController');
 const validateId = require('./middleware/validateId');
+app.options('/live/:competitionId/:filename', hlsController.handleOptions);
 app.get('/live/:competitionId/:filename', validateId('competitionId'), hlsController.serveHLSFile);
 
 const healthCheck = async (req, res) => {

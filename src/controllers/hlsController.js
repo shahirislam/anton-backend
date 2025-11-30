@@ -5,6 +5,16 @@ const streamingService = require('../services/streamingService');
 const logger = require('../utils/logger');
 
 /**
+ * Handle OPTIONS request for CORS preflight
+ */
+const handleOptions = (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(200).end();
+};
+
+/**
  * Serve HLS files
  * GET /live/:competitionId/:filename
  */
@@ -46,15 +56,26 @@ const serveHLSFile = async (req, res) => {
     // Set proper content types and headers
     if (filename.endsWith('.m3u8')) {
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      // Add CORS headers for HLS manifest
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     } else if (filename.endsWith('.ts')) {
       res.setHeader('Content-Type', 'video/mp2t');
       res.setHeader('Cache-Control', 'public, max-age=3600');
+      // Add CORS headers for TS segments
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    } else {
+      // CORS headers for other files
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     }
-
-    // CORS headers for mobile access
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
     // Send file
     res.sendFile(filePath);
@@ -75,5 +96,6 @@ const serveHLSFile = async (req, res) => {
 
 module.exports = {
   serveHLSFile,
+  handleOptions,
 };
 

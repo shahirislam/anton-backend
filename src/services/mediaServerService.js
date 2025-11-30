@@ -43,8 +43,10 @@ class MediaServerService {
             {
               app: 'live',
               hls: true,
-              hlsFlags: '[hls_time=2:hls_list_size=3:hls_flags=delete_segments]',
+              hlsFlags: '[hls_time=2:hls_list_size=10:hls_flags=delete_segments:hls_segment_type=mpegts]',
               hlsKeep: false, // Don't keep segments after stream ends
+              mp4: false, // Don't generate MP4 files
+              mp4Flags: '[movflags=frag_keyframe+empty_moov]',
             },
           ],
         },

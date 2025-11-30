@@ -462,6 +462,113 @@ const getStreamInfoJSON = async (req, res) => {
 };
 
 /**
+ * Get current live stream competition details
+ * GET /api/v1/streams/live
+ */
+const getLiveStream = async (req, res) => {
+  try {
+    // Get all active streams
+    const activeStreams = streamingService.getAllActiveStreams();
+
+    // If no active stream, return message
+    if (activeStreams.length === 0) {
+      return res.success('No live stream is currently active', {
+        is_live: false,
+        message: 'No live stream is happening now',
+        competition: null,
+      });
+    }
+
+    // Get the first active stream (or you can modify to get the most recent)
+    const activeStream = activeStreams[0];
+    const competitionId = activeStream.competitionId;
+
+    // Get competition details
+    const competition = await Competition.findById(competitionId)
+      .populate('category_id', 'name slug')
+      .lean();
+
+    if (!competition) {
+      return res.error('Competition not found', 404);
+    }
+
+    // Check if HLS files actually exist (stream must be active via RTMP)
+    const fs = require('fs');
+    const path = require('path');
+    const mediaServerService = require('../services/mediaServerService');
+    
+    let hlsAvailable = false;
+    let hlsUrl = competition.hls_stream_url || null;
+    
+    // Check if media server is initialized
+    const mediaServerInitialized = mediaServerService.isInitialized();
+    
+    // Check if HLS files exist on disk (regardless of database value)
+    const mediaPath = path.join(__dirname, '../media');
+    const hlsFilePath = path.join(mediaPath, 'live', competitionId, 'index.m3u8');
+    hlsAvailable = fs.existsSync(hlsFilePath);
+    
+    // If HLS files exist but URL is not in database, generate it
+    if (hlsAvailable && !hlsUrl && mediaServerInitialized) {
+      hlsUrl = mediaServerService.getHLSUrl(competitionId);
+    }
+    
+    // If HLS file doesn't exist, ensure hlsUrl is null
+    if (!hlsAvailable) {
+      hlsUrl = null;
+    }
+
+    // Format competition data
+    const competitionData = {
+      _id: competition._id,
+      title: competition.title,
+      slug: competition.slug,
+      short_description: competition.short_description,
+      long_description: competition.long_description,
+      image_url: competition.image_url,
+      category_id: competition.category_id,
+      draw_time: competition.draw_time,
+      cash_alternative: competition.cash_alternative,
+      ticket_price: competition.ticket_price,
+      max_tickets: competition.max_tickets,
+      max_per_person: competition.max_per_person,
+      tickets_sold: competition.tickets_sold,
+      status: competition.status,
+      live_draw_watching_url: competition.live_draw_watching_url,
+      hls_stream_url: hlsUrl, // Only include if HLS files actually exist
+      stream_started_at: competition.stream_started_at,
+      createdAt: competition.createdAt,
+      updatedAt: competition.updatedAt,
+    };
+
+    // Convert image URL to full URL if needed
+    if (competitionData.image_url && !competitionData.image_url.startsWith('http')) {
+      const { getFileUrl } = require('../utils/fileHelper');
+      competitionData.image_url = getFileUrl(competitionData.image_url, req);
+    }
+
+    res.success('Live stream competition retrieved successfully', {
+      is_live: true,
+      message: 'Live stream is currently active',
+      competition: competitionData,
+      stream: {
+        roomId: activeStream.roomId,
+        viewerCount: activeStream.viewerCount || 0,
+        startedAt: activeStream.startedAt,
+        stream_type: hlsAvailable ? 'hls' : 'webrtc', // Indicate which stream type is available
+        hls_available: hlsAvailable, // Boolean to indicate if HLS is actually available
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get live stream', {
+      error: error.message,
+      stack: error.stack,
+    });
+    res.error(error.message || 'Failed to get live stream', 500);
+  }
+};
+
+/**
  * Get HLS stream URL for mobile players
  * GET /api/v1/streams/:competitionId/hls
  */
@@ -509,6 +616,7 @@ const getHLSStreamUrl = async (req, res) => {
 module.exports = {
   getStreamInfo,
   getStreamInfoJSON,
+  getLiveStream,
   getHLSStreamUrl,
 };
 

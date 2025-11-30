@@ -466,6 +466,31 @@ class StreamingService {
   }
 
   /**
+   * Get all active streams
+   * @returns {Array} Array of active stream information
+   */
+  getAllActiveStreams() {
+    const activeStreams = [];
+    
+    for (const [competitionId, streamInfo] of this.activeStreams.entries()) {
+      const room = this.rooms.get(streamInfo.roomId);
+      const isActive = room && room.adminSocketId !== null;
+      
+      if (isActive) {
+        const viewerCount = room && room.viewers ? room.viewers.size : 0;
+        activeStreams.push({
+          competitionId,
+          ...streamInfo,
+          isActive,
+          viewerCount,
+        });
+      }
+    }
+    
+    return activeStreams;
+  }
+
+  /**
    * Get WebRTC configuration (STUN/TURN servers)
    * @returns {Object} RTCConfiguration
    */
